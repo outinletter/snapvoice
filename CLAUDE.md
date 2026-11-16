@@ -1,0 +1,23 @@
+# SnapVoice
+
+## 개요·기술 스택
+- 키보드의 마이크 버튼을 누르고 있는 동안 말하면 손을 뗄 때 텍스트가 입력되는 iOS 키보드 확장 + 컨테이너 앱.
+- Swift 5, iOS 17+, SwiftUI(앱) / UIKit(키보드), SFSpeechRecognizer(ko-KR), 로컬 DB 없음.
+- 키보드 확장은 마이크를 못 쓰므로, 앱이 백그라운드 오디오 세션으로 마이크를 유지하고 키보드가 Darwin 알림 + App Group 공유 폴더의 파일로 시작/종료·결과를 주고받는다(UserDefaults는 프로세스 간 반영이 늦어 쓰지 않는다).
+- Xcode 프로젝트는 xcodeproj gem 스크립트로 생성했다(폴더 동기화 그룹 아님). 새 파일은 pbxproj에 직접 추가해야 한다.
+
+## 폴더 구조
+- `App/` 컨테이너 앱 (UI, DictationEngine)
+- `Keyboard/` 키보드 확장 (KeyboardViewController, HangulComposer 두벌식 조합기)
+- `Shared/Bridge.swift` 두 타깃 공용 통신 코드
+
+## 규칙
+- 번들 ID `com.bongsu.snapvoice`(+`.keyboard`), App Group `group.com.bongsu.snapvoice`. 바꾸면 entitlements·Bridge.swift도 같이 바꾼다.
+- 키보드 Info.plist `RequestsOpenAccess`=true 필수(App Group 접근).
+- 외부 API 없이 기기 내 음성 인식만 사용.
+
+## 명령어·현재 상태
+- 스킴 `SnapVoice`, 타깃 `SnapVoice`, `SnapVoiceKeyboard`, 팀 A7QB8PT33N.
+- 빌드: `xcodebuild -project SnapVoice.xcodeproj -scheme SnapVoice -destination 'generic/platform=iOS' -allowProvisioningUpdates -quiet build`
+- 키보드 높이 209pt·키 간격은 iPhone 16 Pro 기본 키보드 스크린샷에 맞춘 값이다.
+- 상태(2026-11-16): 기본 키보드 모양 + 맨 아래 줄 `123 · 누르고 말하기 · space · return`, 한/영 전환은 space 길게 누르기. 실기기에 설치됨. 받아쓰기·중복 입력 수정 확인됨. 앱이 백그라운드에서 멈춰 "연결 중/변환 중"에 걸리던 문제에 마이크 자동 복구·오래된 시작 신호 무시·키보드 3초 타임아웃을 넣었고 실기기 재확인 대기 중.
