@@ -24,7 +24,7 @@ final class DictationEngine: ObservableObject {
 
     /// 자동 종료까지의 분. 0이면 끄지 않는다.
     static var idleMinutes: Int {
-        UserDefaults.standard.object(forKey: "idleMinutes") == nil ? 5 : UserDefaults.standard.integer(forKey: "idleMinutes")
+        UserDefaults.standard.object(forKey: "idleMinutes") == nil ? 1 : UserDefaults.standard.integer(forKey: "idleMinutes")
     }
 
     init() {

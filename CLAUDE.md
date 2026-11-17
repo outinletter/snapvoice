@@ -24,8 +24,8 @@
 - 심사 대응: 키보드에서 앱을 열지 않는다(4.4.1, Debug 빌드에서도 열지 않음). 세션이 꺼졌을 때는 동작 버튼/단축어의 App Intent(`App/AppIntents.swift`)로 켠다, 키에 이모지를 쓰지 않는다(5.2.5), 키 디자인은 기본 키보드와 구별되는 강조색·둥근 키를 유지한다.
 - 세션은 앱이 활성화될 때 자동으로 켜진다(`autoStart`, 기본 켬). iOS는 키보드 확장의 마이크 사용과 백그라운드에서의 녹음 시작을 막으므로, 앱을 한 번도 열지 않은 상태에서 키보드만으로 받아쓰기를 시작할 수는 없다.
 - 사용자에게 보이는 문구는 모두 `L("한국어", "English")`로 쓴다. 권한 문구는 `App/*.lproj/InfoPlist.strings`.
-- 첫 실행 때 마이크 사용 동의(`onboarded`)를 받은 뒤에만 세션을 켠다. 세션은 `idleMinutes`(기본 5분, 끄지 않음 옵션 없음) 동안 안 쓰면 자동으로 꺼진다.
+- 첫 실행 때 마이크 사용 동의(`onboarded`)를 받은 뒤에만 세션을 켠다. 세션은 `idleMinutes`(기본 1분, 선택지 1·3·5·15·30분, 끄지 않음 없음) 동안 안 쓰면 자동으로 꺼진다.
 - 키보드 맨 아래 줄: `123 · 한/A · 누르고 말하기 · space · return`. 한/영은 전용 `한/A` 키(탭), 시작 언어는 앱의 "기본 언어" 설정.
 - 개인정보 처리방침 URL: https://outinletter.github.io/privacy-policy/snapvoice.html (앱 링크·App Store Connect 동일). 원문은 https://github.com/outinletter/privacy-policy 저장소의 `snapvoice.html`에서 관리하고, 이 저장소의 PRIVACY.md는 사본이다.
-- 앱 이름 점검(2026-11-17): US App Store에 "SnapVoice: Photo Text Reader"(Chengdu Weicao Youfang) 존재. 출시명은 구별되게(예: "SnapVoice Keyboard") 정한다.
+- 앱 이름: App Store 이름 "SnapVoice Keyboard", 표시 이름(CFBundleDisplayName)·앱 화면 제목 `SnapVoiceKeyboard`. 코드 모듈명·타깃명은 `SnapVoice`를 유지한다(바꾸면 키보드 NSExtensionPrincipalClass 등이 깨진다).
 - 상태(2026-11-17): 출시 준비 항목(자동 종료, 첫 실행 동의, 영어 현지화, VoiceOver 라벨, 가로 모드 높이, 입력칸별 자판, 개인정보 매니페스트, 제출 문서)을 넣고 실기기에 설치·푸시함. 화면 확인 대기. 다음: 실기기 점검, 스크린샷·시연 영상, Archive 업로드.

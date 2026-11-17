@@ -2,7 +2,7 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0"><dict>
 <key>CFBundleDevelopmentRegion</key><string>en</string>
-<key>CFBundleDisplayName</key><string>SnapVoice</string>
+<key>CFBundleDisplayName</key><string>SnapVoiceKeyboard</string>
 <key>CFBundleExecutable</key><string>$(EXECUTABLE_NAME)</string>
 <key>CFBundleIdentifier</key><string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
 <key>CFBundleName</key><string>$(PRODUCT_NAME)</string>
@@ -14,7 +14,7 @@
 <key>UILaunchScreen</key><dict/>
 <key>UISupportedInterfaceOrientations</key><array><string>UIInterfaceOrientationPortrait</string></array>
 <key>UIBackgroundModes</key><array><string>audio</string></array>
-<key>NSMicrophoneUsageDescription</key><string>SnapVoice uses the microphone to turn your speech into text while you hold the talk button.</string>
-<key>NSSpeechRecognitionUsageDescription</key><string>SnapVoice uses speech recognition to turn what you say into text. If on-device recognition is unavailable, audio may be sent to Apple.</string>
+<key>NSMicrophoneUsageDescription</key><string>SnapVoiceKeyboard uses the microphone to turn your speech into text while you hold the talk button.</string>
+<key>NSSpeechRecognitionUsageDescription</key><string>SnapVoiceKeyboard uses speech recognition to turn what you say into text. If on-device recognition is unavailable, audio may be sent to Apple.</string>
 <key>ITSAppUsesNonExemptEncryption</key><false/>
 </dict></plist>

@@ -4,7 +4,7 @@ import AppIntents
 /// 동작 버튼에 연결하는 토글: 누를 때마다 세션을 켜고 끈다.
 struct ToggleVoiceSessionIntent: AppIntent {
     static var title: LocalizedStringResource = "Toggle voice session"
-    static var description = IntentDescription("Turns the SnapVoice voice session on if it is off, and off if it is on.")
+    static var description = IntentDescription("Turns the SnapVoiceKeyboard voice session on if it is off, and off if it is on.")
     // iOS 25 이하: 켜든 끄든 앱이 앞으로 나온다 (켤 때만 나오도록 나눌 수 없다).
     static var openAppWhenRun: Bool = true
     // iOS 26 이상: 평소에는 백그라운드로 실행하고, 앱이 앞에 있어야 하는 "켜기"에서만 앱을 앞으로 가져온다.
@@ -30,7 +30,7 @@ struct ToggleVoiceSessionIntent: AppIntent {
 
 struct StartVoiceSessionIntent: AppIntent {
     static var title: LocalizedStringResource = "Start voice session"
-    static var description = IntentDescription("Turns on the SnapVoice voice session so the keyboard can dictate.")
+    static var description = IntentDescription("Turns on the SnapVoiceKeyboard voice session so the keyboard can dictate.")
     static var openAppWhenRun: Bool = true   // 백그라운드에서는 마이크를 새로 켤 수 없어 앱을 앞으로 가져온다
 
     @MainActor func perform() async throws -> some IntentResult {
@@ -42,7 +42,7 @@ struct StartVoiceSessionIntent: AppIntent {
 
 struct StopVoiceSessionIntent: AppIntent {
     static var title: LocalizedStringResource = "Stop voice session"
-    static var description = IntentDescription("Turns off the SnapVoice voice session and the microphone.")
+    static var description = IntentDescription("Turns off the SnapVoiceKeyboard voice session and the microphone.")
 
     @MainActor func perform() async throws -> some IntentResult {
         DictationEngine.shared.stopSession()

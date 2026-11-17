@@ -25,12 +25,12 @@ struct ContentView: View {
     @State private var defaultLang = Bridge.get(Bridge.Key.defaultLang).isEmpty ? "ko" : Bridge.get(Bridge.Key.defaultLang)
     @AppStorage("autoStart") private var autoStart = true
     @AppStorage("onboarded") private var onboarded = false
-    @AppStorage("idleMinutes") private var idleMinutes = 5
+    @AppStorage("idleMinutes") private var idleMinutes = 1
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
-                Text("SnapVoice").font(.largeTitle.bold())
+                Text("SnapVoiceKeyboard").font(.largeTitle.bold()).lineLimit(1).minimumScaleFactor(0.6)
                 Text(L("키보드의 '누르고 말하기' 버튼을 누르고 있는 동안 말하면, 손을 뗄 때 바로 입력됩니다.",
                        "Hold the Hold to talk key on the keyboard and speak. Your words are typed when you let go."))
                     .foregroundStyle(.secondary)
@@ -69,16 +69,16 @@ struct ContentView: View {
 
                 GroupBox(L("설정 방법", "Setup")) {
                     VStack(alignment: .leading, spacing: 8) {
-                        Text(L("1. 설정 ▸ 일반 ▸ 키보드 ▸ 키보드 ▸ 새로운 키보드 추가 ▸ SnapVoice",
-                               "1. Settings ▸ General ▸ Keyboard ▸ Keyboards ▸ Add New Keyboard ▸ SnapVoice"))
-                        Text(L("2. SnapVoice ▸ '전체 접근 허용' 켜기 (받아쓰기에만 필요, 글자 입력은 없어도 됨)",
-                               "2. SnapVoice ▸ turn on Allow Full Access (needed only for dictation; typing works without it)"))
+                        Text(L("1. 설정 ▸ 일반 ▸ 키보드 ▸ 키보드 ▸ 새로운 키보드 추가 ▸ SnapVoiceKeyboard",
+                               "1. Settings ▸ General ▸ Keyboard ▸ Keyboards ▸ Add New Keyboard ▸ SnapVoiceKeyboard"))
+                        Text(L("2. SnapVoiceKeyboard ▸ '전체 접근 허용' 켜기 (받아쓰기에만 필요, 글자 입력은 없어도 됨)",
+                               "2. SnapVoiceKeyboard ▸ turn on Allow Full Access (needed only for dictation; typing works without it)"))
                         Text(L("3. 이 앱을 열어 음성 세션 켜기 ▸ 다른 앱으로 이동",
                                "3. Open this app to turn the voice session on ▸ switch to another app"))
-                        Text(L("   세션이 꺼졌을 땐 동작 버튼으로 다시 켤 수 있습니다: 설정 ▸ 동작 버튼 ▸ 단축어 ▸ SnapVoice '음성 세션 켜기/끄기' (누르면 켜지고 다시 누르면 꺼짐)",
-                               "   If the session turns off, restart it with the Action Button: Settings ▸ Action Button ▸ Shortcut ▸ SnapVoice \"Toggle voice session\" (press to turn on, press again to turn off)"))
-                        Text(L("4. 지구본 키로 SnapVoice 키보드 선택 ▸ '누르고 말하기'를 누른 채 말하기",
-                               "4. Pick SnapVoice with the globe key ▸ hold Hold to talk and speak"))
+                        Text(L("   세션이 꺼졌을 땐 동작 버튼으로 다시 켤 수 있습니다: 설정 ▸ 동작 버튼 ▸ 단축어 ▸ SnapVoiceKeyboard '음성 세션 켜기/끄기' (누르면 켜지고 다시 누르면 꺼짐)",
+                               "   If the session turns off, restart it with the Action Button: Settings ▸ Action Button ▸ Shortcut ▸ SnapVoiceKeyboard \"Toggle voice session\" (press to turn on, press again to turn off)"))
+                        Text(L("4. 지구본 키로 SnapVoiceKeyboard 키보드 선택 ▸ '누르고 말하기'를 누른 채 말하기",
+                               "4. Pick SnapVoiceKeyboard with the globe key ▸ hold Hold to talk and speak"))
                         Button(L("설정 열기", "Open Settings")) {
                             if let url = URL(string: UIApplication.openSettingsURLString) { UIApplication.shared.open(url) }
                         }
@@ -138,6 +138,7 @@ struct ContentView: View {
 
         Toggle(L("앱을 열면 세션 자동으로 켜기", "Turn session on when the app opens"), isOn: $autoStart).font(.footnote)
         Picker(L("쓰지 않으면 자동으로 끄기", "Turn off when unused"), selection: $idleMinutes) {
+            Text(L("1분", "1 min")).tag(1)
             Text(L("3분", "3 min")).tag(3)
             Text(L("5분", "5 min")).tag(5)
             Text(L("15분", "15 min")).tag(15)
