@@ -13,11 +13,13 @@
 		1132493BF27A09C88AD3073E /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 478B307EA7E2B843DB247153 /* InfoPlist.strings */; };
 		1A208C22611C3D39CEFBF65A /* SnapVoiceApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA49A66E17EA60FAE2C1C494 /* SnapVoiceApp.swift */; };
 		245F4A1407BC0E0F66CD6089 /* DictationEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D7B8E65047F28D44944657B /* DictationEngine.swift */; };
+		4BFB41BD9B021CA55390561A /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = 041074E51C55627E453B62EE /* Localizable.strings */; };
 		5435D7E8A24CD06177833867 /* SnapVoiceKeyboard.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 7E9B6BED73324C2619BE0BF3 /* SnapVoiceKeyboard.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		669A7869AB6F623B3603F045 /* HangulComposer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 158C235F8D267153FDC1DE4E /* HangulComposer.swift */; };
 		729C53536AB949879EAA63C6 /* Bridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49EBDD5FBB4A7565908576BA /* Bridge.swift */; };
 		8733E7E8944344B307C8C282 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 60121260993AD70CD503E179 /* Foundation.framework */; };
 		888C47D4D41C3BB23B6C9963 /* Bridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49EBDD5FBB4A7565908576BA /* Bridge.swift */; };
+		B1F18B61DC1FE793276AB334 /* AppIntents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 62E2EE88086B23C8190B69F7 /* AppIntents.swift */; };
 		EC6D1060C1E0F6D68D035517 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D238BA7C512BA89A781EAC08 /* Assets.xcassets */; };
 /* End PBXBuildFile section */
 
@@ -49,13 +51,16 @@
 		0D7B8E65047F28D44944657B /* DictationEngine.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DictationEngine.swift; sourceTree = "<group>"; };
 		158C235F8D267153FDC1DE4E /* HangulComposer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = HangulComposer.swift; sourceTree = "<group>"; };
 		1C8B177B551E55A9B918E2AB /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		2C931A24AC04F98D47D1A9B8 /* en */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
 		2E815E65F0574799F7D86071 /* Keyboard.entitlements */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.entitlements; path = Keyboard.entitlements; sourceTree = "<group>"; };
 		49EBDD5FBB4A7565908576BA /* Bridge.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = Bridge.swift; sourceTree = "<group>"; };
 		60121260993AD70CD503E179 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
+		62E2EE88086B23C8190B69F7 /* AppIntents.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AppIntents.swift; sourceTree = "<group>"; };
 		68D16D808EBAE7C63B6C161A /* Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		7E9B6BED73324C2619BE0BF3 /* SnapVoiceKeyboard.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = SnapVoiceKeyboard.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		9D816C05254E673BDD43B731 /* en */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/InfoPlist.strings; sourceTree = "<group>"; };
 		9FB41DEA5F26F7803741145D /* Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		A00B2D0AFD3957157A8EE9F4 /* ko */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.strings; name = ko; path = ko.lproj/Localizable.strings; sourceTree = "<group>"; };
 		AD1589D3AEE1C9C5D45542FB /* App.entitlements */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.entitlements; path = App.entitlements; sourceTree = "<group>"; };
 		B3D8C87F13363729092BE9CA /* KeyboardViewController.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = KeyboardViewController.swift; sourceTree = "<group>"; };
 		BB28D9A40F8A2060DB511898 /* SnapVoice.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SnapVoice.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -151,6 +156,8 @@
 				D238BA7C512BA89A781EAC08 /* Assets.xcassets */,
 				478B307EA7E2B843DB247153 /* InfoPlist.strings */,
 				1C8B177B551E55A9B918E2AB /* PrivacyInfo.xcprivacy */,
+				62E2EE88086B23C8190B69F7 /* AppIntents.swift */,
+				041074E51C55627E453B62EE /* Localizable.strings */,
 			);
 			name = App;
 			path = App;
@@ -234,6 +241,7 @@
 				EC6D1060C1E0F6D68D035517 /* Assets.xcassets in Resources */,
 				1132493BF27A09C88AD3073E /* InfoPlist.strings in Resources */,
 				0956E94E0327ACB69513DB77 /* PrivacyInfo.xcprivacy in Resources */,
+				4BFB41BD9B021CA55390561A /* Localizable.strings in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -254,6 +262,7 @@
 				1A208C22611C3D39CEFBF65A /* SnapVoiceApp.swift in Sources */,
 				245F4A1407BC0E0F66CD6089 /* DictationEngine.swift in Sources */,
 				729C53536AB949879EAA63C6 /* Bridge.swift in Sources */,
+				B1F18B61DC1FE793276AB334 /* AppIntents.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -279,6 +288,15 @@
 /* End PBXTargetDependency section */
 
 /* Begin PBXVariantGroup section */
+		041074E51C55627E453B62EE /* Localizable.strings */ = {
+			isa = PBXVariantGroup;
+			children = (
+				2C931A24AC04F98D47D1A9B8 /* en */,
+				A00B2D0AFD3957157A8EE9F4 /* ko */,
+			);
+			name = Localizable.strings;
+			sourceTree = "<group>";
+		};
 		478B307EA7E2B843DB247153 /* InfoPlist.strings */ = {
 			isa = PBXVariantGroup;
 			children = (
@@ -416,7 +434,7 @@
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = Keyboard/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.bongsu.snapvoice.keyboard;
+				PRODUCT_BUNDLE_IDENTIFIER = com.addvalue.snapvoicekeyboard.keyboard;
 				PRODUCT_NAME = SnapVoiceKeyboard;
 				SDKROOT = iphoneos;
 				SKIP_INSTALL = YES;
@@ -436,7 +454,7 @@
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = Keyboard/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.bongsu.snapvoice.keyboard;
+				PRODUCT_BUNDLE_IDENTIFIER = com.addvalue.snapvoicekeyboard.keyboard;
 				PRODUCT_NAME = SnapVoiceKeyboard;
 				SDKROOT = iphoneos;
 				SKIP_INSTALL = YES;
@@ -458,7 +476,7 @@
 				INFOPLIST_FILE = App/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
-				PRODUCT_BUNDLE_IDENTIFIER = com.bongsu.snapvoice;
+				PRODUCT_BUNDLE_IDENTIFIER = com.addvalue.snapvoicekeyboard;
 				PRODUCT_NAME = SnapVoice;
 				SDKROOT = iphoneos;
 				SKIP_INSTALL = NO;
@@ -481,7 +499,7 @@
 				INFOPLIST_FILE = App/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
-				PRODUCT_BUNDLE_IDENTIFIER = com.bongsu.snapvoice;
+				PRODUCT_BUNDLE_IDENTIFIER = com.addvalue.snapvoicekeyboard;
 				PRODUCT_NAME = SnapVoice;
 				SDKROOT = iphoneos;
 				SKIP_INSTALL = NO;

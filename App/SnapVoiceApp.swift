@@ -2,7 +2,7 @@ import SwiftUI
 
 @main
 struct SnapVoiceApp: App {
-    @StateObject private var engine = DictationEngine()
+    @StateObject private var engine = DictationEngine.shared
     @Environment(\.scenePhase) private var phase
     @AppStorage("autoStart") private var autoStart = true
     @AppStorage("onboarded") private var onboarded = false
@@ -22,9 +22,10 @@ struct ContentView: View {
     @EnvironmentObject var engine: DictationEngine
     @State private var height = Bridge.keyboardHeight
     @State private var sample = ""
+    @State private var defaultLang = Bridge.get(Bridge.Key.defaultLang).isEmpty ? "ko" : Bridge.get(Bridge.Key.defaultLang)
     @AppStorage("autoStart") private var autoStart = true
     @AppStorage("onboarded") private var onboarded = false
-    @AppStorage("idleMinutes") private var idleMinutes = 15
+    @AppStorage("idleMinutes") private var idleMinutes = 5
 
     var body: some View {
         ScrollView {
@@ -33,6 +34,20 @@ struct ContentView: View {
                 Text(L("키보드의 '누르고 말하기' 버튼을 누르고 있는 동안 말하면, 손을 뗄 때 바로 입력됩니다.",
                        "Hold the Hold to talk key on the keyboard and speak. Your words are typed when you let go."))
                     .foregroundStyle(.secondary)
+
+                GroupBox(L("기본 언어", "Default language")) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Picker(L("키보드 시작 언어", "Keyboard starts in"), selection: $defaultLang) {
+                            Text("한글").tag("ko")
+                            Text("English").tag("en")
+                            Text(L("마지막 사용", "Last used")).tag("last")
+                        }.pickerStyle(.segmented)
+                        Text(L("받아쓰기 언어도 키보드 언어를 따릅니다. 키보드의 space 바를 좌우로 밀면 언제든 바꿀 수 있습니다. 이메일·URL 칸은 항상 영어로 시작합니다.",
+                               "Dictation uses the keyboard's language. Swipe the space bar left or right to switch any time. Email and URL fields always start in English."))
+                            .font(.caption).foregroundStyle(.secondary)
+                    }
+                }
+                .onChange(of: defaultLang) { _, v in Bridge.set(v, Bridge.Key.defaultLang) }
 
                 if onboarded { sessionControls } else { consent }
 
@@ -60,6 +75,8 @@ struct ContentView: View {
                                "2. SnapVoice ▸ turn on Allow Full Access (needed only for dictation; typing works without it)"))
                         Text(L("3. 이 앱을 열어 음성 세션 켜기 ▸ 다른 앱으로 이동",
                                "3. Open this app to turn the voice session on ▸ switch to another app"))
+                        Text(L("   세션이 꺼졌을 땐 동작 버튼으로 다시 켤 수 있습니다: 설정 ▸ 동작 버튼 ▸ 단축어 ▸ SnapVoice '음성 세션 켜기/끄기' (누르면 켜지고 다시 누르면 꺼짐)",
+                               "   If the session turns off, restart it with the Action Button: Settings ▸ Action Button ▸ Shortcut ▸ SnapVoice \"Toggle voice session\" (press to turn on, press again to turn off)"))
                         Text(L("4. 지구본 키로 SnapVoice 키보드 선택 ▸ '누르고 말하기'를 누른 채 말하기",
                                "4. Pick SnapVoice with the globe key ▸ hold Hold to talk and speak"))
                         Button(L("설정 열기", "Open Settings")) {
@@ -74,10 +91,19 @@ struct ContentView: View {
                                "Full Access is used only so the keyboard and this app can exchange dictation signals and results on your device. What you type is never stored or sent anywhere."))
                         Text(L("음성은 버튼을 누르고 있는 동안에만 Apple 음성 인식으로 글자로 바뀝니다. 기기 내 인식을 지원하지 않는 경우 음성이 Apple 서버로 전송될 수 있습니다. 개발자는 음성이나 글을 수집하지 않습니다.",
                                "Speech is transcribed by Apple speech recognition only while you hold the button. If on-device recognition is unavailable, audio may be sent to Apple. The developer collects no audio or text."))
-                        Link(L("개인정보 처리방침", "Privacy Policy"), destination: URL(string: "https://github.com/outinletter/snapvoice/blob/main/PRIVACY.md")!)
+                        Link(L("개인정보 처리방침", "Privacy Policy"), destination: URL(string: "https://outinletter.github.io/privacy-policy/snapvoice.html")!)
                     }.font(.footnote).frame(maxWidth: .infinity, alignment: .leading)
                 }
             }.padding()
+        }
+    }
+
+    /// 테스트 받아쓰기 언어: "기본 언어" 설정을 따른다 (마지막 사용이면 키보드에서 마지막에 쓴 언어).
+    private var testLocale: String {
+        switch defaultLang {
+        case "en": return "en-US"
+        case "last": return Bridge.get(Bridge.Key.lang) == "en" ? "en-US" : "ko-KR"
+        default: return "ko-KR"
         }
     }
 
@@ -112,21 +138,22 @@ struct ContentView: View {
 
         Toggle(L("앱을 열면 세션 자동으로 켜기", "Turn session on when the app opens"), isOn: $autoStart).font(.footnote)
         Picker(L("쓰지 않으면 자동으로 끄기", "Turn off when unused"), selection: $idleMinutes) {
+            Text(L("3분", "3 min")).tag(3)
             Text(L("5분", "5 min")).tag(5)
             Text(L("15분", "15 min")).tag(15)
-            Text(L("1시간", "1 hour")).tag(60)
-            Text(L("끄지 않음", "Never")).tag(0)
+            Text(L("30분", "30 min")).tag(30)
         }.font(.footnote)
 
         if !engine.message.isEmpty { Text(engine.message).font(.footnote) }
         if engine.running {
-            Text(engine.recording ? L("듣는 중… ", "Listening… ") + engine.partial : L("여기를 누른 채 말해서 테스트", "Hold here and speak to test"))
+            Text(engine.recording ? L("듣는 중… ", "Listening… ") + engine.partial
+                 : L("여기를 누른 채 말해서 테스트", "Hold here and speak to test") + " (\(testLocale == "en-US" ? "English" : "한국어"))")
                 .frame(maxWidth: .infinity).padding()
                 .background(engine.recording ? Color.red.opacity(0.3) : Color.gray.opacity(0.2), in: RoundedRectangle(cornerRadius: 10))
                 .gesture(DragGesture(minimumDistance: 0)
                     .onChanged { _ in
                         if !engine.recording {
-                            Bridge.set(isKorean ? "ko-KR" : "en-US", Bridge.Key.locale)
+                            Bridge.set(testLocale, Bridge.Key.locale)   // 기본 언어 설정을 따른다
                             Bridge.set(String(Date().timeIntervalSince1970), Bridge.Key.startAt)
                             Bridge.post(.start)
                         }

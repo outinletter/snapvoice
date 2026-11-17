@@ -1,12 +1,17 @@
 import UIKit
 
 private final class Key: UIButton {
-    static let haptic = UIImpactFeedbackGenerator(style: .light)
+    static var haptic = UIImpactFeedbackGenerator(style: .light)
+    static var lastFire = Date.distantPast
     override var isHighlighted: Bool { didSet { alpha = isHighlighted ? 0.55 : 1 } }
 
     // 키를 누르는 순간 햅틱 (전체 접근 허용이 켜져 있어야 울린다)
     override func beginTracking(_ touch: UITouch, with event: UIEvent?) -> Bool {
-        DispatchQueue.main.async { Key.haptic.impactOccurred(); Key.haptic.prepare() }   // 글자 입력을 먼저 처리
+        // 터치 순간 바로 울린다. 한동안 안 눌렀으면 생성기를 새로 만들어 끊긴 연결을 복구한다.
+        if Date().timeIntervalSince(Key.lastFire) > 5 { Key.haptic = UIImpactFeedbackGenerator(style: .light) }
+        Key.lastFire = Date()
+        Key.haptic.impactOccurred()
+        Key.haptic.prepare()
         return super.beginTracking(touch, with: event)
     }
 }
@@ -14,8 +19,10 @@ private final class Key: UIButton {
 final class KeyboardViewController: UIInputViewController {
     private enum Layer { case korean, english, number, symbol }
 
-    private var layer: Layer = isKorean ? .korean : .english
-    private var lastLetter: Layer = isKorean ? .korean : .english
+    // 시작 언어는 앱의 "기본 언어" 설정을 따른다(기본값 한글). "마지막 사용" 선택 시 마지막에 쓴 언어로 시작한다.
+    private var layer: Layer = .korean
+    private var lastLetter: Layer = .korean
+    private var savedLetter: Layer { Bridge.get(Bridge.Key.lang) == "en" ? .english : .korean }
     private var shift = 0                 // 0 꺼짐, 1 한 번, 2 고정
     private var lastShiftTap = Date.distantPast
     private var composer = HangulComposer()
@@ -78,7 +85,13 @@ final class KeyboardViewController: UIInputViewController {
         switch textDocumentProxy.keyboardType {
         case .emailAddress, .URL, .asciiCapable, .twitter: lastLetter = .english; layer = .english
         case .numberPad, .decimalPad, .numbersAndPunctuation, .asciiCapableNumberPad: layer = .number
-        default: if layer == .number || layer == .symbol { layer = lastLetter }
+        default:
+            switch Bridge.get(Bridge.Key.defaultLang) {
+            case "en": lastLetter = .english
+            case "last": lastLetter = savedLetter
+            default: lastLetter = .korean   // 설정이 없으면 한글
+            }
+            layer = lastLetter
         }
         composer.reset()
         rebuild()   // 지구본 키 필요 여부도 여기서 다시 판단한다
@@ -100,6 +113,8 @@ final class KeyboardViewController: UIInputViewController {
         super.viewDidAppear(animated)
         // iOS는 화면 가장자리 제스처를 가리려고 터치 시작을 늦춘다. 끄지 않으면 가장자리 키가 굼뜨다.
         view.window?.gestureRecognizers?.forEach { $0.delaysTouchesBegan = false }
+        Key.haptic = UIImpactFeedbackGenerator(style: .light); Key.haptic.prepare()
+        if !hasFullAccess { setTalk(L(" 전체 접근을 켜 주세요", " Turn on Full Access"), revert: true) }   // 햅틱·받아쓰기에 필요
     }
 
     // SnapVoice 고유 디자인: 보라·파랑 강조색, 둥근 키, 둥근 글꼴 (기본 키보드와 구별)
@@ -206,20 +221,15 @@ final class KeyboardViewController: UIInputViewController {
         talk.titleLabel?.lineBreakMode = .byTruncatingHead
         talk.addTarget(self, action: #selector(talkDown), for: .touchDown)
         talk.addTarget(self, action: #selector(talkUp), for: [.touchUpInside, .touchUpOutside, .touchCancel])
-        let space = makeKey(L("길게 눌러 한/영", "Hold: 한/EN"), size: 12)
+        // 한/영 전환 전용 키: 현재 언어를 "한" 또는 "A"로 표시하고, 누르면 바뀐다.
+        let lang = makeKey(lastLetter == .korean ? "한" : "A", fn: true, size: 18)
+        lang.accessibilityLabel = L("한영 전환", "Switch language")
+        lang.accessibilityValue = lastLetter == .korean ? L("한글", "Korean") : L("영어", "English")
+        lang.addAction(UIAction { [weak self] _ in self?.toggleLanguage() }, for: .touchUpInside)
+        let space = makeKey("space", size: 15)
         space.accessibilityLabel = L("스페이스", "Space")
-        space.accessibilityHint = L("길게 누르면 한글과 영어를 바꿉니다", "Hold to switch between Korean and English")
         space.setTitleColor(.secondaryLabel, for: .normal)
-        let tag = UILabel(); tag.text = lastLetter == .korean ? "한" : "A"
-        tag.font = .systemFont(ofSize: 15); tag.textColor = .secondaryLabel
-        tag.translatesAutoresizingMaskIntoConstraints = false
-        space.addSubview(tag)
-        tag.trailingAnchor.constraint(equalTo: space.trailingAnchor, constant: -10).isActive = true
-        tag.bottomAnchor.constraint(equalTo: space.bottomAnchor, constant: -6).isActive = true
         space.addAction(UIAction { [weak self] _ in self?.composer.reset(); self?.textDocumentProxy.insertText(" ") }, for: .touchUpInside)
-        let lp = UILongPressGestureRecognizer(target: self, action: #selector(toggleLanguage(_:)))
-        lp.minimumPressDuration = 0.4
-        space.addGestureRecognizer(lp)
         let ret = symbol("return")
         ret.backgroundColor = Self.accent
         ret.tintColor = .white
@@ -231,11 +241,12 @@ final class KeyboardViewController: UIInputViewController {
             globe.addTarget(self, action: #selector(handleInputModeList(from:with:)), for: .allTouchEvents)
             left4.append(globe)
         }
-        let r4 = UIStackView(arrangedSubviews: left4 + [talk, space, ret])
+        let r4 = UIStackView(arrangedSubviews: left4 + [lang, talk, space, ret])
         r4.spacing = 6; r4.distribution = .fill
-        modeKey.widthAnchor.constraint(equalToConstant: 64).isActive = true
+        modeKey.widthAnchor.constraint(equalToConstant: 56).isActive = true
+        lang.widthAnchor.constraint(equalToConstant: 44).isActive = true
         left4.dropFirst().forEach { $0.widthAnchor.constraint(equalToConstant: 44).isActive = true }
-        ret.widthAnchor.constraint(equalToConstant: 64).isActive = true
+        ret.widthAnchor.constraint(equalToConstant: 56).isActive = true
         talk.widthAnchor.constraint(equalTo: space.widthAnchor).isActive = true
         keyArea.addArrangedSubview(r4)
     }
@@ -259,7 +270,11 @@ final class KeyboardViewController: UIInputViewController {
     }
 
     // MARK: 입력
+    private var lastKeyAt = Date.distantPast
     private func syncComposer() {
+        // 입력창을 읽는 것은 느리다. 빠르게 이어 칠 때는 건너뛰고, 잠시 쉬었다 칠 때만 커서 이동을 확인한다.
+        let now = Date(); defer { lastKeyAt = now }
+        guard now.timeIntervalSince(lastKeyAt) > 0.8 else { return }
         guard composer.isComposing, let before = textDocumentProxy.documentContextBeforeInput else { return }
         if before.last.map({ String($0) }) != composer.text { composer.reset() }
     }
@@ -271,7 +286,7 @@ final class KeyboardViewController: UIInputViewController {
 
     private func typeLetter(_ s: String) {
         if layer == .korean, let ch = s.first {
-            if composer.isComposing { syncComposer() }
+            if composer.isComposing { syncComposer() } else { lastKeyAt = Date() }
             apply(composer.input(ch))
         } else {
             composer.reset(); textDocumentProxy.insertText(s)
@@ -301,11 +316,11 @@ final class KeyboardViewController: UIInputViewController {
     private func stopDelete() { repeatTimer?.invalidate(); repeatTimer = nil }
 
     // MARK: 음성
-    @objc private func toggleLanguage(_ g: UILongPressGestureRecognizer) {
-        guard g.state == .began else { return }
+    private func toggleLanguage() {
         composer.reset()
         lastLetter = lastLetter == .korean ? .english : .korean
         layer = lastLetter; shift = 0
+        Bridge.set(lastLetter == .korean ? "ko" : "en", Bridge.Key.lang)
         UIImpactFeedbackGenerator(style: .light).impactOccurred()
         rebuild()
     }
@@ -313,7 +328,7 @@ final class KeyboardViewController: UIInputViewController {
     @objc private func talkDown() {
         guard hasFullAccess else { setTalk(L("전체 접근 허용 필요", "Allow Full Access"), revert: true); return }
         guard Bridge.isSessionAlive else {
-            setTalk(L(" SnapVoice 앱을 한 번 여세요", " Open SnapVoice once"), revert: true)   // 키보드는 다른 앱을 열 수 없다(심사 지침 4.4.1)
+            setTalk(L(" 세션 꺼짐 · 동작 버튼으로 켜기", " Session off · use Action Button"), revert: true)   // 키보드는 다른 앱을 열지 않는다(4.4.1)
             return
         }
         holding = true; acked = false; pressID += 1

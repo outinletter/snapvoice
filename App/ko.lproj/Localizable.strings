@@ -1,0 +1,6 @@
+"Start voice session" = "음성 세션 켜기";
+"Stop voice session" = "음성 세션 끄기";
+"Turns on the SnapVoice voice session so the keyboard can dictate." = "키보드로 받아쓸 수 있도록 SnapVoice 음성 세션을 켭니다.";
+"Turns off the SnapVoice voice session and the microphone." = "SnapVoice 음성 세션과 마이크를 끕니다.";
+"Toggle voice session" = "음성 세션 켜기/끄기";
+"Turns the SnapVoice voice session on if it is off, and off if it is on." = "음성 세션이 꺼져 있으면 켜고, 켜져 있으면 끕니다.";

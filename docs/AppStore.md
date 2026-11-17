@@ -9,7 +9,7 @@ App Store Connect에 붙여 넣을 내용이다. 스크린샷과 시연 영상�
 - 카테고리: 유틸리티 (보조: 생산성)
 - 연령 등급: 4+
 - 가격: 무료
-- 개인정보 처리방침 URL: https://github.com/outinletter/snapvoice/blob/main/PRIVACY.md
+- 개인정보 처리방침 URL: https://outinletter.github.io/privacy-policy/snapvoice.html
 - 지원 URL: https://github.com/outinletter/snapvoice/issues
 
 ## 설명 (ko)
@@ -17,7 +17,7 @@ SnapVoice는 버튼을 누르고 있는 동안에만 받아쓰는 키보드입�
 
 - 누르고 있는 동안만 듣는 받아쓰기
 - 한글 두벌식·영어 자판과 숫자·기호 자판
-- 한국어·영어 음성 인식 (space를 길게 눌러 전환)
+- 한국어·영어 음성 인식 (한/A 키로 전환)
 - 키보드 높이 조절, 키 햅틱
 - 계정·광고·분석 도구 없음. 개발자는 어떤 데이터도 수집하지 않습니다
 
@@ -28,7 +28,7 @@ SnapVoice is a keyboard that listens only while you hold a key. Instead of toggl
 
 - Dictation only while you hold the key
 - Korean (2-set) and English layouts with numbers and symbols
-- Korean and English speech recognition (hold space to switch)
+- Korean and English speech recognition (switch with the 한/A key)
 - Adjustable keyboard height and key haptics
 - No accounts, ads, or analytics. The developer collects no data
 
@@ -54,17 +54,19 @@ How to test:
 3. Open Notes, switch to SnapVoice with the globe key, hold the "Hold to talk" key, speak, and release. The text is inserted.
 
 Why background audio is used (Guideline 2.5.4 / 2.5.14):
-iOS does not allow keyboard extensions to access the microphone. The containing app therefore keeps an audio session open while the user has explicitly turned on a "voice session", and the keyboard only signals when the key is pressed and released. Audio is transcribed only while the key is held; nothing is recorded to disk. The iOS microphone indicator is visible for the whole session, the user consents on first launch, can turn the session off at any time, and it turns off automatically after the chosen idle time (15 minutes by default).
+iOS does not allow keyboard extensions to access the microphone. The containing app therefore keeps an audio session open while the user has explicitly turned on a "voice session", and the keyboard only signals when the key is pressed and released. Audio is transcribed only while the key is held; nothing is recorded to disk. The iOS microphone indicator is visible for the whole session, the user consents on first launch, can turn the session off at any time, and it turns off automatically after the chosen idle time (5 minutes by default).
 
 Guideline 4.4.1:
 - Typing works without Full Access and without network access. Full Access is used only for on-device communication with the containing app (App Group) for dictation.
-- The keyboard never launches the containing app or any other app.
+- The keyboard never launches the containing app or any other app. If the voice session is off, the key only shows a hint; the user restarts the session from the app, or with the Action Button / Shortcuts ("Start voice session").
+- Language switching uses a dedicated 한/A key; no key is repurposed.
 - The system globe key (or our own globe key on devices without one) advances to the next keyboard.
 - The keyboard does not use emoji and has its own visual design.
 
 Privacy: no data is collected by the developer. Speech is processed by Apple's Speech framework, on device when supported.
 
 ## 제출 전 직접 할 일
+- 개인정보 처리방침은 privacy-policy 저장소의 `snapvoice.html`로 게시됨(2026-11-17). 앱 링크와 App Store Connect URL을 모두 위 주소로 입력한다.
 - 스크린샷: 6.9" iPhone (1320×2868) 최소 3장 — 키보드로 받아쓰는 화면, 앱의 세션 화면, 설정 방법.
 - 시연 영상을 심사 메모에 링크로 첨부.
 - Xcode에서 Archive → App Store Connect 업로드 (배포용 서명).

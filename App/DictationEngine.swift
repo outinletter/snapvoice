@@ -4,6 +4,8 @@ import UIKit
 
 /// 백그라운드에서 마이크를 유지하다가 키보드 신호에 맞춰 받아쓰기한다.
 final class DictationEngine: ObservableObject {
+    static let shared = DictationEngine()   // 앱 화면과 단축어(동작 버튼)가 같은 세션을 쓴다
+
     @Published var running = false
     @Published var recording = false
     @Published var partial = ""
@@ -22,7 +24,7 @@ final class DictationEngine: ObservableObject {
 
     /// 자동 종료까지의 분. 0이면 끄지 않는다.
     static var idleMinutes: Int {
-        UserDefaults.standard.object(forKey: "idleMinutes") == nil ? 15 : UserDefaults.standard.integer(forKey: "idleMinutes")
+        UserDefaults.standard.object(forKey: "idleMinutes") == nil ? 5 : UserDefaults.standard.integer(forKey: "idleMinutes")
     }
 
     init() {

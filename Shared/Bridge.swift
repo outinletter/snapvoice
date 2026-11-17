@@ -7,7 +7,7 @@ func L(_ ko: String, _ en: String) -> String { isKorean ? ko : en }
 /// 앱 ↔ 키보드 통신: App Group 공유 폴더의 파일 + Darwin 알림
 /// (UserDefaults는 프로세스 간 반영이 늦어 알림 직후 읽으면 옛 값이 나온다)
 enum Bridge {
-    static let group = "group.com.bongsu.snapvoice"
+    static let group = "group.com.addvalue.snapvoicekeyboard"
     static let dir = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: group)
 
     enum Key {
@@ -17,15 +17,17 @@ enum Bridge {
         static let error = "error"           // 실패 사유
         static let startAt = "startAt"       // 시작 신호를 보낸 시각
         static let height = "height"         // 사용자가 정한 키보드 높이(pt)
+        static let defaultLang = "defaultLang" // 시작 언어 설정: ko / en / last
+        static let lang = "lang"             // 키보드 마지막 언어 (ko / en)
         static let locale = "locale"         // 받아쓰기 언어 (ko-KR / en-US)
     }
 
     enum Event: String {
-        case start = "com.bongsu.snapvoice.start"     // 키보드 → 앱: 녹음 시작
-        case stop = "com.bongsu.snapvoice.stop"       // 키보드 → 앱: 녹음 종료
-        case partial = "com.bongsu.snapvoice.partial" // 앱 → 키보드 (시작 확인 겸용)
-        case result = "com.bongsu.snapvoice.result"   // 앱 → 키보드
-        case config = "com.bongsu.snapvoice.config"   // 앱 → 키보드: 설정 변경
+        case start = "com.addvalue.snapvoicekeyboard.start"     // 키보드 → 앱: 녹음 시작
+        case stop = "com.addvalue.snapvoicekeyboard.stop"       // 키보드 → 앱: 녹음 종료
+        case partial = "com.addvalue.snapvoicekeyboard.partial" // 앱 → 키보드 (시작 확인 겸용)
+        case result = "com.addvalue.snapvoicekeyboard.result"   // 앱 → 키보드
+        case config = "com.addvalue.snapvoicekeyboard.config"   // 앱 → 키보드: 설정 변경
     }
 
     static func set(_ value: String, _ key: String) {
