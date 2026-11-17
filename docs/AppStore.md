@@ -10,7 +10,7 @@ App Store Connect에 붙여 넣을 내용이다. 스크린샷과 시연 영상�
 - 카테고리: 유틸리티 (보조: 생산성)
 - 연령 등급: 4+
 - 가격: 무료
-- 개인정보 처리방침 URL: https://outinletter.github.io/privacy-policy/snapvoice.html
+- 개인정보 처리방침 URL: https://outinletter.github.io/privacy-policy/snapvoicekeyboard.html
 - 지원 URL: https://github.com/outinletter/snapvoice/issues
 
 ## 설명 (ko)
@@ -67,7 +67,7 @@ Guideline 4.4.1:
 Privacy: no data is collected by the developer. Speech is processed by Apple's Speech framework, on device when supported.
 
 ## 제출 전 직접 할 일
-- 개인정보 처리방침은 privacy-policy 저장소의 `snapvoice.html`로 게시됨(2026-11-17). 앱 링크와 App Store Connect URL을 모두 위 주소로 입력한다.
+- 개인정보 처리방침은 privacy-policy 저장소의 `snapvoicekeyboard.html`로 게시됨(2026-11-17). 앱 링크와 App Store Connect URL을 모두 위 주소로 입력한다.
 - 스크린샷: 6.9" iPhone (1320×2868) 최소 3장 — 키보드로 받아쓰는 화면, 앱의 세션 화면, 설정 방법.
 - 시연 영상을 심사 메모에 링크로 첨부.
 - Xcode에서 Archive → App Store Connect 업로드 (배포용 서명).

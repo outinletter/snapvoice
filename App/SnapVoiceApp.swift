@@ -91,7 +91,7 @@ struct ContentView: View {
                                "Full Access is used only so the keyboard and this app can exchange dictation signals and results on your device. What you type is never stored or sent anywhere."))
                         Text(L("음성은 버튼을 누르고 있는 동안에만 Apple 음성 인식으로 글자로 바뀝니다. 기기 내 인식을 지원하지 않는 경우 음성이 Apple 서버로 전송될 수 있습니다. 개발자는 음성이나 글을 수집하지 않습니다.",
                                "Speech is transcribed by Apple speech recognition only while you hold the button. If on-device recognition is unavailable, audio may be sent to Apple. The developer collects no audio or text."))
-                        Link(L("개인정보 처리방침", "Privacy Policy"), destination: URL(string: "https://outinletter.github.io/privacy-policy/snapvoice.html")!)
+                        Link(L("개인정보 처리방침", "Privacy Policy"), destination: URL(string: "https://outinletter.github.io/privacy-policy/snapvoicekeyboard.html")!)
                     }.font(.footnote).frame(maxWidth: .infinity, alignment: .leading)
                 }
             }.padding()
