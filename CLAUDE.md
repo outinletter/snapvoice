@@ -9,7 +9,8 @@
 ## 폴더 구조
 - `App/` 컨테이너 앱 (UI, DictationEngine)
 - `Keyboard/` 키보드 확장 (KeyboardViewController, HangulComposer 두벌식 조합기)
-- `Shared/Bridge.swift` 두 타깃 공용 통신 코드
+- `Shared/Bridge.swift` 두 타깃 공용 통신 코드 + `L(ko, en)` 문구 선택 함수
+- `docs/AppStore.md` 제출 자료 초안, `PRIVACY.md` 처리방침(ko/en)
 
 ## 규칙
 - 번들 ID `com.bongsu.snapvoice`(+`.keyboard`), App Group `group.com.bongsu.snapvoice`. 바꾸면 entitlements·Bridge.swift도 같이 바꾼다.
@@ -19,5 +20,9 @@
 ## 명령어·현재 상태
 - 스킴 `SnapVoice`, 타깃 `SnapVoice`, `SnapVoiceKeyboard`, 팀 A7QB8PT33N.
 - 빌드: `xcodebuild -project SnapVoice.xcodeproj -scheme SnapVoice -destination 'generic/platform=iOS' -allowProvisioningUpdates -quiet build`
-- 키보드 높이 209pt·키 간격은 iPhone 16 Pro 기본 키보드 스크린샷에 맞춘 값이다.
-- 상태(2026-11-16): 기본 키보드 모양 + 맨 아래 줄 `123 · 누르고 말하기 · space · return`, 한/영 전환은 space 길게 누르기. 실기기에 설치됨. 받아쓰기·중복 입력 수정 확인됨. 앱이 백그라운드에서 멈춰 "연결 중/변환 중"에 걸리던 문제에 마이크 자동 복구·오래된 시작 신호 무시·키보드 3초 타임아웃을 넣었고 실기기 재확인 대기 중.
+- 키보드 높이 기본 209pt(iPhone 16 Pro 기본 키보드 기준). 앱의 슬라이더(180~300)로 바꾸며 공유 폴더 `height` 파일로 전달한다.
+- 심사 대응: 키보드에서 앱을 열지 않는다(4.4.1), 키에 이모지를 쓰지 않는다(5.2.5), 키 디자인은 기본 키보드와 구별되는 강조색·둥근 키를 유지한다.
+- 세션은 앱이 활성화될 때 자동으로 켜진다(`autoStart`, 기본 켬). iOS는 키보드 확장의 마이크 사용과 백그라운드에서의 녹음 시작을 막으므로, 앱을 한 번도 열지 않은 상태에서 키보드만으로 받아쓰기를 시작할 수는 없다.
+- 사용자에게 보이는 문구는 모두 `L("한국어", "English")`로 쓴다. 권한 문구는 `App/*.lproj/InfoPlist.strings`.
+- 첫 실행 때 마이크 사용 동의(`onboarded`)를 받은 뒤에만 세션을 켠다. 세션은 `idleMinutes`(기본 15분) 동안 안 쓰면 자동으로 꺼진다.
+- 상태(2026-11-17): 출시 준비 항목(자동 종료, 첫 실행 동의, 영어 현지화, VoiceOver 라벨, 가로 모드 높이, 입력칸별 자판, 개인정보 매니페스트, 제출 문서)을 넣고 실기기에 설치·푸시함. 화면 확인 대기. 다음: 실기기 점검, 스크린샷·시연 영상, Archive 업로드.

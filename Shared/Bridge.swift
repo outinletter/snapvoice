@@ -1,5 +1,9 @@
 import Foundation
 
+/// 기기 언어가 한국어면 ko, 아니면 en 문구를 쓴다.
+let isKorean = (Locale.preferredLanguages.first ?? "ko").hasPrefix("ko")
+func L(_ ko: String, _ en: String) -> String { isKorean ? ko : en }
+
 /// 앱 ↔ 키보드 통신: App Group 공유 폴더의 파일 + Darwin 알림
 /// (UserDefaults는 프로세스 간 반영이 늦어 알림 직후 읽으면 옛 값이 나온다)
 enum Bridge {
@@ -12,6 +16,7 @@ enum Bridge {
         static let final = "final"           // 확정 텍스트
         static let error = "error"           // 실패 사유
         static let startAt = "startAt"       // 시작 신호를 보낸 시각
+        static let height = "height"         // 사용자가 정한 키보드 높이(pt)
         static let locale = "locale"         // 받아쓰기 언어 (ko-KR / en-US)
     }
 
@@ -20,6 +25,7 @@ enum Bridge {
         case stop = "com.bongsu.snapvoice.stop"       // 키보드 → 앱: 녹음 종료
         case partial = "com.bongsu.snapvoice.partial" // 앱 → 키보드 (시작 확인 겸용)
         case result = "com.bongsu.snapvoice.result"   // 앱 → 키보드
+        case config = "com.bongsu.snapvoice.config"   // 앱 → 키보드: 설정 변경
     }
 
     static func set(_ value: String, _ key: String) {
@@ -30,6 +36,13 @@ enum Bridge {
     static func get(_ key: String) -> String {
         guard let dir else { return "" }
         return (try? String(contentsOf: dir.appendingPathComponent(key), encoding: .utf8)) ?? ""
+    }
+
+    static let defaultHeight = 209.0
+    static let heightRange = 180.0...300.0
+    static var keyboardHeight: Double {
+        guard let h = Double(get(Key.height)) else { return defaultHeight }
+        return min(max(h, heightRange.lowerBound), heightRange.upperBound)
     }
 
     static var isSessionAlive: Bool {

@@ -1,20 +1,27 @@
 import UIKit
 
 private final class Key: UIButton {
+    static let haptic = UIImpactFeedbackGenerator(style: .light)
     override var isHighlighted: Bool { didSet { alpha = isHighlighted ? 0.55 : 1 } }
+
+    // 키를 누르는 순간 햅틱 (전체 접근 허용이 켜져 있어야 울린다)
+    override func beginTracking(_ touch: UITouch, with event: UIEvent?) -> Bool {
+        DispatchQueue.main.async { Key.haptic.impactOccurred(); Key.haptic.prepare() }   // 글자 입력을 먼저 처리
+        return super.beginTracking(touch, with: event)
+    }
 }
 
 final class KeyboardViewController: UIInputViewController {
     private enum Layer { case korean, english, number, symbol }
 
-    private var layer: Layer = .korean
-    private var lastLetter: Layer = .korean
+    private var layer: Layer = isKorean ? .korean : .english
+    private var lastLetter: Layer = isKorean ? .korean : .english
     private var shift = 0                 // 0 꺼짐, 1 한 번, 2 고정
     private var lastShiftTap = Date.distantPast
     private var composer = HangulComposer()
 
     private var row2: UIStackView?
-    private let talkTitle = "🎙 누르고 말하기"
+    private let talkTitle = L(" 누르고 말하기", " Hold to talk")
     private let keyArea = UIStackView()
     private var talk = Key(type: .custom)
     private var holding = false
@@ -53,31 +60,64 @@ final class KeyboardViewController: UIInputViewController {
             guard let self, self.holding else { return }
             self.acked = true
             let t = Bridge.get(Bridge.Key.partial)
-            self.setTalk(t.isEmpty ? "듣는 중…" : t)
+            self.setTalk(t.isEmpty ? L("듣는 중…", "Listening…") : t)
         }
         Bridge.observe(.result) { [weak self] in self?.finishDictation() }
+        Bridge.observe(.config) { [weak self] in self?.applyHeight() }
     }
 
     private var heightC: NSLayoutConstraint?
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         if heightC == nil {
-            let c = view.heightAnchor.constraint(equalToConstant: 209)
+            let c = view.heightAnchor.constraint(equalToConstant: Bridge.defaultHeight)
             c.priority = .init(999); c.isActive = true; heightC = c
         }
+        applyHeight()
+        // 입력칸 종류에 맞는 자판으로 시작한다
+        switch textDocumentProxy.keyboardType {
+        case .emailAddress, .URL, .asciiCapable, .twitter: lastLetter = .english; layer = .english
+        case .numberPad, .decimalPad, .numbersAndPunctuation, .asciiCapableNumberPad: layer = .number
+        default: if layer == .number || layer == .symbol { layer = lastLetter }
+        }
+        composer.reset()
+        rebuild()   // 지구본 키 필요 여부도 여기서 다시 판단한다
+        Key.haptic.prepare()
     }
+
+    /// 앱에서 정한 높이를 반영한다. 가로 모드에서는 화면을 덜 가리도록 낮춘다.
+    private func applyHeight() {
+        let b = UIScreen.main.bounds
+        heightC?.constant = b.width > b.height ? min(Bridge.keyboardHeight, 162) : Bridge.keyboardHeight
+    }
+
+    override func viewWillTransition(to size: CGSize, with coordinator: UIViewControllerTransitionCoordinator) {
+        super.viewWillTransition(to: size, with: coordinator)
+        coordinator.animate(alongsideTransition: nil) { [weak self] _ in self?.applyHeight() }
+    }
+
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        // iOS는 화면 가장자리 제스처를 가리려고 터치 시작을 늦춘다. 끄지 않으면 가장자리 키가 굼뜨다.
+        view.window?.gestureRecognizers?.forEach { $0.delaysTouchesBegan = false }
+    }
+
+    // SnapVoice 고유 디자인: 보라·파랑 강조색, 둥근 키, 둥근 글꼴 (기본 키보드와 구별)
+    private static let accent = UIColor(red: 0.36, green: 0.33, blue: 0.95, alpha: 1)
+    private static let keyColor = UIColor { $0.userInterfaceStyle == .dark ? UIColor(white: 1, alpha: 0.14) : .white }
+    private static let fnColor = UIColor { $0.userInterfaceStyle == .dark
+        ? UIColor(red: 0.36, green: 0.33, blue: 0.95, alpha: 0.38) : UIColor(red: 0.36, green: 0.33, blue: 0.95, alpha: 0.20) }
 
     private func makeKey(_ title: String, fn: Bool = false, size: CGFloat = 22) -> Key {
         let b = Key(type: .custom)
         b.setTitle(title, for: .normal)
         b.setTitleColor(.label, for: .normal)
-        b.titleLabel?.font = .systemFont(ofSize: size)
+        let base = UIFont.systemFont(ofSize: size, weight: .medium)
+        b.titleLabel?.font = base.fontDescriptor.withDesign(.rounded).map { UIFont(descriptor: $0, size: size) } ?? base
         b.titleLabel?.adjustsFontSizeToFitWidth = true
         b.titleLabel?.minimumScaleFactor = 0.6
-        b.backgroundColor = fn
-            ? UIColor { $0.userInterfaceStyle == .dark ? UIColor(white: 0.29, alpha: 1) : UIColor(red: 0.68, green: 0.70, blue: 0.74, alpha: 1) }
-            : UIColor { $0.userInterfaceStyle == .dark ? UIColor(white: 0.29, alpha: 1) : .white }
-        b.layer.cornerRadius = 8
+        b.backgroundColor = fn ? Self.fnColor : Self.keyColor
+        b.layer.cornerRadius = 12
         b.setContentCompressionResistancePriority(.defaultLow, for: .vertical)
         b.setContentHuggingPriority(.defaultLow, for: .vertical)
         return b
@@ -87,6 +127,10 @@ final class KeyboardViewController: UIInputViewController {
         let b = makeKey("", fn: fn)
         b.setImage(UIImage(systemName: name), for: .normal)
         b.tintColor = .label
+        b.accessibilityLabel = [
+            "delete.left": L("삭제", "Delete"), "return": L("줄바꿈", "Return"), "globe": L("다음 키보드", "Next keyboard"),
+            "shift": L("쉬프트", "Shift"), "shift.fill": L("쉬프트 켜짐", "Shift on"), "capslock.fill": L("쉬프트 고정", "Caps Lock"),
+        ][name]
         return b
     }
 
@@ -151,12 +195,21 @@ final class KeyboardViewController: UIInputViewController {
             self.rebuild()
         }, for: .touchUpInside)
         talk = makeKey(talkTitle, size: 13)
+        talk.setImage(UIImage(systemName: "mic.fill", withConfiguration: UIImage.SymbolConfiguration(pointSize: 13)), for: .normal)
+        talk.accessibilityLabel = L("누르고 말하기", "Hold to talk")
+        talk.accessibilityHint = L("누르고 있는 동안 말하면 글자로 입력됩니다", "Speak while holding to insert text")
+        talk.tintColor = .white
+        talk.setTitleColor(.white, for: .normal)
+        talk.backgroundColor = Self.accent
         talk.titleLabel?.numberOfLines = 2
         talk.titleLabel?.textAlignment = .center
         talk.titleLabel?.lineBreakMode = .byTruncatingHead
         talk.addTarget(self, action: #selector(talkDown), for: .touchDown)
         talk.addTarget(self, action: #selector(talkUp), for: [.touchUpInside, .touchUpOutside, .touchCancel])
-        let space = makeKey(lastLetter == .korean ? "" : "space", size: 15)
+        let space = makeKey(L("길게 눌러 한/영", "Hold: 한/EN"), size: 12)
+        space.accessibilityLabel = L("스페이스", "Space")
+        space.accessibilityHint = L("길게 누르면 한글과 영어를 바꿉니다", "Hold to switch between Korean and English")
+        space.setTitleColor(.secondaryLabel, for: .normal)
         let tag = UILabel(); tag.text = lastLetter == .korean ? "한" : "A"
         tag.font = .systemFont(ofSize: 15); tag.textColor = .secondaryLabel
         tag.translatesAutoresizingMaskIntoConstraints = false
@@ -168,7 +221,8 @@ final class KeyboardViewController: UIInputViewController {
         lp.minimumPressDuration = 0.4
         space.addGestureRecognizer(lp)
         let ret = symbol("return")
-        ret.backgroundColor = UIColor { $0.userInterfaceStyle == .dark ? UIColor(white: 0.5, alpha: 1) : UIColor(red: 0.68, green: 0.70, blue: 0.74, alpha: 1) }
+        ret.backgroundColor = Self.accent
+        ret.tintColor = .white
         ret.addAction(UIAction { [weak self] _ in self?.composer.reset(); self?.textDocumentProxy.insertText("\n") }, for: .touchUpInside)
 
         var left4: [UIView] = [modeKey]
@@ -217,7 +271,8 @@ final class KeyboardViewController: UIInputViewController {
 
     private func typeLetter(_ s: String) {
         if layer == .korean, let ch = s.first {
-            syncComposer(); apply(composer.input(ch))
+            if composer.isComposing { syncComposer() }
+            apply(composer.input(ch))
         } else {
             composer.reset(); textDocumentProxy.insertText(s)
         }
@@ -256,20 +311,19 @@ final class KeyboardViewController: UIInputViewController {
     }
 
     @objc private func talkDown() {
-        guard hasFullAccess else { setTalk("전체 접근 허용 필요", revert: true); return }
+        guard hasFullAccess else { setTalk(L("전체 접근 허용 필요", "Allow Full Access"), revert: true); return }
         guard Bridge.isSessionAlive else {
-            setTalk("앱에서 세션을 켜세요", revert: true)
-            openApp(); return
+            setTalk(L(" SnapVoice 앱을 한 번 여세요", " Open SnapVoice once"), revert: true)   // 키보드는 다른 앱을 열 수 없다(심사 지침 4.4.1)
+            return
         }
         holding = true; acked = false; pressID += 1
         Bridge.set(String(Date().timeIntervalSince1970), Bridge.Key.startAt)
         Bridge.set(lastLetter == .korean ? "ko-KR" : "en-US", Bridge.Key.locale)
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) { [weak self] in
             guard let self, self.holding, !self.acked else { return }
-            self.setTalk("앱 응답 없음")
+            self.setTalk(L("앱 응답 없음", "No response"))
         }
-        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-        setTalk("연결 중…")
+        setTalk(L("연결 중…", "Connecting…"))
         talk.backgroundColor = .systemRed
         Bridge.post(.start)
     }
@@ -277,33 +331,24 @@ final class KeyboardViewController: UIInputViewController {
     @objc private func talkUp() {
         guard holding else { return }
         holding = false; waiting = true
-        setTalk("변환 중…")
+        setTalk(L("변환 중…", "Transcribing…"))
         let id = pressID
         DispatchQueue.main.asyncAfter(deadline: .now() + 3) { [weak self] in
             guard let self, self.pressID == id, !self.holding, self.waiting else { return }
             self.waiting = false
-            self.setTalk("앱 응답 없음", revert: true)
+            self.setTalk(L("앱 응답 없음", "No response"), revert: true)
         }
-        talk.backgroundColor = UIColor { $0.userInterfaceStyle == .dark ? UIColor(white: 0.29, alpha: 1) : .white }
+        talk.backgroundColor = Self.accent
         Bridge.post(.stop)
     }
 
     private func finishDictation() {
         guard waiting || holding else { return }   // 기다리지 않는 결과는 무시
         waiting = false
-        if holding { holding = false; talk.backgroundColor = UIColor { $0.userInterfaceStyle == .dark ? UIColor(white: 0.29, alpha: 1) : .white } }
+        if holding { holding = false; talk.backgroundColor = Self.accent }
         let text = Bridge.get(Bridge.Key.final)
         let err = Bridge.get(Bridge.Key.error)
-        setTalk(text.isEmpty ? (err.isEmpty ? "인식 없음" : err) : "입력됨", revert: true)
+        setTalk(text.isEmpty ? (err.isEmpty ? L("인식 없음", "Nothing heard") : err) : L("입력됨", "Inserted"), revert: true)
         if !text.isEmpty { composer.reset(); textDocumentProxy.insertText(text + " ") }   // 다음 받아쓰기와 띄어지도록 끝에 공백
-    }
-
-    private func openApp() {
-        guard let url = URL(string: "snapvoice://start") else { return }
-        var r: UIResponder? = self
-        while let cur = r {
-            if let app = cur as? UIApplication { app.open(url, options: [:], completionHandler: nil); return }
-            r = cur.next
-        }
     }
 }

@@ -17,6 +17,13 @@ final class DictationEngine: ObservableObject {
     private var latest = ""
     private var generation = 0      // 녹음 회차. 늦게 도착한 이전 회차 콜백을 무시한다
     private var delivered = true
+    private var lastActivity = Date()   // 마지막으로 받아쓴 시각. 오래 안 쓰면 세션을 끈다
+    private static var onMessage: String { L("세션 켜짐. 다른 앱으로 이동해 키보드를 사용하세요.", "Session on. Switch to another app and use the keyboard.") }
+
+    /// 자동 종료까지의 분. 0이면 끄지 않는다.
+    static var idleMinutes: Int {
+        UserDefaults.standard.object(forKey: "idleMinutes") == nil ? 15 : UserDefaults.standard.integer(forKey: "idleMinutes")
+    }
 
     init() {
         Bridge.observe(.start) { [weak self] in self?.beginRecording() }
@@ -46,7 +53,7 @@ final class DictationEngine: ObservableObject {
         let input = engine.inputNode
         input.removeTap(onBus: 0)
         let fmt = input.outputFormat(forBus: 0)
-        guard fmt.sampleRate > 0 else { throw NSError(domain: "SnapVoice", code: 1, userInfo: [NSLocalizedDescriptionKey: "마이크 입력 없음"]) }
+        guard fmt.sampleRate > 0 else { throw NSError(domain: "SnapVoice", code: 1, userInfo: [NSLocalizedDescriptionKey: L("마이크 입력 없음", "No microphone input")]) }
         input.installTap(onBus: 0, bufferSize: 1024, format: fmt) { [weak self] buf, _ in
             self?.request?.append(buf)
         }
@@ -57,8 +64,8 @@ final class DictationEngine: ObservableObject {
     @discardableResult private func ensureAudio() -> Bool {
         guard running else { return false }
         if engine.isRunning { return true }
-        do { try activate(); message = "세션 켜짐. 다른 앱으로 이동해 키보드를 사용하세요."; return true }
-        catch { message = "마이크가 끊겼습니다. 앱을 열어 두면 다시 연결합니다."; return false }
+        do { try activate(); message = Self.onMessage; return true }
+        catch { message = L("마이크가 끊겼습니다. 앱을 열어 두면 다시 연결합니다.", "Microphone was interrupted. Keep the app open to reconnect."); return false }
     }
 
     private func cancelRecording() {
@@ -78,16 +85,17 @@ final class DictationEngine: ObservableObject {
     func startSession() {
         guard !running else { return }
         requestPermissions { [weak self] ok in
-            guard let self, ok else { self?.message = "마이크·음성 인식 권한을 허용해 주세요."; return }
+            guard let self, ok else { self?.message = L("마이크·음성 인식 권한을 허용해 주세요.", "Please allow Microphone and Speech Recognition access."); return }
             guard !self.running else { return }
             do {
                 try self.activate()
                 self.running = true
-                self.message = "세션 켜짐. 다른 앱으로 이동해 키보드를 사용하세요."
+                self.message = Self.onMessage
+                self.lastActivity = Date()
                 self.beat()
                 self.timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in self?.beat() }
             } catch {
-                self.message = "시작 실패: \(error.localizedDescription)"
+                self.message = L("시작 실패: ", "Could not start: ") + error.localizedDescription
             }
         }
     }
@@ -101,10 +109,16 @@ final class DictationEngine: ObservableObject {
         try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
         Bridge.set("0", Bridge.Key.heartbeat)
         running = false; recording = false
-        message = "세션 꺼짐"
+        message = L("세션 꺼짐", "Session off")
     }
 
     private func beat() {
+        let idle = Self.idleMinutes
+        if idle > 0, !recording, Date().timeIntervalSince(lastActivity) > Double(idle * 60) {
+            stopSession()
+            message = L("\(idle)분 동안 쓰지 않아 세션을 껐습니다. 앱을 다시 열면 켜집니다.", "Session turned off after \(idle) min of inactivity. Reopen the app to turn it on.")
+            return
+        }
         // 마이크가 실제로 돌고 있을 때만 생존 신호를 쓴다. 끊겼으면 키보드가 앱을 다시 연다.
         guard ensureAudio() else { return }
         Bridge.set(String(Date().timeIntervalSince1970), Bridge.Key.heartbeat)
@@ -122,6 +136,7 @@ final class DictationEngine: ObservableObject {
         // 앱이 멈춰 있던 동안 밀린 오래된 시작 신호는 버린다
         guard Date().timeIntervalSince1970 - (Double(Bridge.get(Bridge.Key.startAt)) ?? 0) < 2 else { return }
         if recording { cancelRecording() }
+        lastActivity = Date()
         generation += 1
         let gen = generation
         task?.cancel(); task = nil
@@ -133,10 +148,10 @@ final class DictationEngine: ObservableObject {
         var loc = Bridge.get(Bridge.Key.locale)
         if loc.isEmpty { loc = "ko-KR" }
         guard let recognizer = SFSpeechRecognizer(locale: Locale(identifier: loc)) else {
-            return fail("\(loc) 음성 인식을 지원하지 않음")
+            return fail(L("\(loc) 음성 인식을 지원하지 않음", "Speech recognition not supported for \(loc)"))
         }
-        guard recognizer.isAvailable else { return fail("음성 인식을 지금 쓸 수 없음 (네트워크 확인)") }
-        guard ensureAudio() else { return fail("마이크 끊김. 앱을 여세요") }
+        guard recognizer.isAvailable else { return fail(L("음성 인식을 지금 쓸 수 없음", "Speech recognition unavailable")) }
+        guard ensureAudio() else { return fail(L("마이크 끊김. 앱을 여세요", "Mic lost. Open the app")) }
 
         let r = SFSpeechAudioBufferRecognitionRequest()
         r.shouldReportPartialResults = true
@@ -156,7 +171,7 @@ final class DictationEngine: ObservableObject {
                     if self.latest.isEmpty && self.recording {
                         self.recording = false; self.request = nil
                         self.delivered = true
-                        self.fail("인식 실패: \(error.localizedDescription)")
+                        self.fail(L("인식 실패", "Recognition failed"))
                     } else { self.deliver(gen) }
                 }
             }
@@ -167,6 +182,7 @@ final class DictationEngine: ObservableObject {
     private func endRecording() {
         guard recording else { return }
         recording = false
+        lastActivity = Date()
         let gen = generation
         request?.endAudio()
         // 최종 결과가 늦으면 중간 결과로 전달
