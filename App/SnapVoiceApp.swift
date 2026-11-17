@@ -42,8 +42,8 @@ struct ContentView: View {
                             Text("English").tag("en")
                             Text(L("마지막 사용", "Last used")).tag("last")
                         }.pickerStyle(.segmented)
-                        Text(L("받아쓰기 언어도 키보드 언어를 따릅니다. 키보드의 space 바를 좌우로 밀면 언제든 바꿀 수 있습니다. 이메일·URL 칸은 항상 영어로 시작합니다.",
-                               "Dictation uses the keyboard's language. Swipe the space bar left or right to switch any time. Email and URL fields always start in English."))
+                        Text(L("받아쓰기 언어도 키보드 언어를 따릅니다. 키보드의 한/A 키를 누르면 언제든 바꿀 수 있습니다. 이메일·URL 칸은 항상 영어로 시작합니다.",
+                               "Dictation uses the keyboard's language. Tap the 한/A key on the keyboard to switch any time. Email and URL fields always start in English."))
                             .font(.caption).foregroundStyle(.secondary)
                     }
                 }

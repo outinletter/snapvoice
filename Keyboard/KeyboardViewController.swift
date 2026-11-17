@@ -251,12 +251,18 @@ final class KeyboardViewController: UIInputViewController {
         keyArea.addArrangedSubview(r4)
     }
 
-    private func setTalk(_ t: String, revert: Bool = false) {
+    private func setTalkIcon(_ name: String) {
+        talk.setImage(UIImage(systemName: name, withConfiguration: UIImage.SymbolConfiguration(pointSize: 13)), for: .normal)
+    }
+
+    private func setTalk(_ t: String, revert: Bool = false, icon: String? = nil) {
         talk.setTitle(t, for: .normal)
+        if let icon { setTalkIcon(icon) }
         if revert {
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self] in
                 guard let self, !self.holding else { return }
                 self.talk.setTitle(self.talkTitle, for: .normal)
+                self.setTalkIcon("mic.fill")
             }
         }
     }
@@ -328,7 +334,7 @@ final class KeyboardViewController: UIInputViewController {
     @objc private func talkDown() {
         guard hasFullAccess else { setTalk(L("전체 접근 허용 필요", "Allow Full Access"), revert: true); return }
         guard Bridge.isSessionAlive else {
-            setTalk(L(" 세션 꺼짐 · 동작 버튼으로 켜기", " Session off · use Action Button"), revert: true)   // 키보드는 다른 앱을 열지 않는다(4.4.1)
+            setTalk(L(" 세션 꺼짐", " Session off"), revert: true, icon: "mic.slash.fill")   // 키보드는 다른 앱을 열지 않는다(4.4.1)
             return
         }
         holding = true; acked = false; pressID += 1
