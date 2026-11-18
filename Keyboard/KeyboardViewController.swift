@@ -9,21 +9,24 @@ private final class Haptics {
     private var engine: CHHapticEngine?
     private var pattern: CHHapticPattern?
     private var ready = false
+    private var failed = false          // Core Haptics를 못 쓰면 true: 매번 다시 시도하지 않는다
+    var enabled = true               // 전체 접근 허용이 꺼져 있으면 false
     private var last = Date.distantPast
     private let fallback = UIImpactFeedbackGenerator(style: .rigid)
 
     func prepare() {
+        guard enabled else { return }
         fallback.prepare()
-        q.async { if !self.ready { self.setup() } }
+        q.async { self.failed = false; if !self.ready { self.setup() } }
     }
 
     private func setup() {
-        guard CHHapticEngine.capabilitiesForHardware().supportsHaptics else { return }
+        guard CHHapticEngine.capabilitiesForHardware().supportsHaptics else { failed = true; return }
         do {
             let e = try CHHapticEngine()
             e.playsHapticsOnly = true            // 소리·오디오 세션을 건드리지 않는다
             e.isAutoShutdownEnabled = false
-            e.resetHandler = { [weak self] in self?.q.async { self?.ready = false; self?.setup() } }
+            e.resetHandler = { [weak self] in self?.q.async { self?.ready = false; self?.failed = false; self?.setup() } }
             e.stoppedHandler = { [weak self] _ in self?.q.async { self?.ready = false } }
             try e.start()
             let ev = CHHapticEvent(eventType: .hapticTransient, parameters: [
@@ -31,17 +34,18 @@ private final class Haptics {
                 CHHapticEventParameter(parameterID: .hapticSharpness, value: 0.9)], relativeTime: 0)
             pattern = try CHHapticPattern(events: [ev], parameters: [])
             engine = e; ready = true
-        } catch { ready = false }
+        } catch { ready = false; failed = true }
     }
 
     func tap() {
+        guard enabled else { return }
         let now = Date()
         guard now.timeIntervalSince(last) > 0.035 else { return }   // 아주 빠른 연타는 건너뛰어 진동이 뭉치지 않게 한다
         last = now
         q.async {
-            if !self.ready { self.setup() }
+            if !self.ready && !self.failed { self.setup() }
             if self.ready, let e = self.engine, let p = self.pattern {
-                do { try e.makePlayer(with: p).start(atTime: CHHapticTimeImmediate); return } catch { self.ready = false }
+                do { try e.makePlayer(with: p).start(atTime: CHHapticTimeImmediate); return } catch { self.ready = false; self.failed = true }
             }
             DispatchQueue.main.async { self.fallback.impactOccurred(intensity: 0.55) }
         }
@@ -116,6 +120,8 @@ final class KeyboardViewController: UIInputViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
 
+        view.isMultipleTouchEnabled = true
+        keyArea.isMultipleTouchEnabled = true
         keyArea.axis = .vertical
         keyArea.spacing = 11.3
         keyArea.distribution = .fillEqually
@@ -162,6 +168,7 @@ final class KeyboardViewController: UIInputViewController {
         }
         composer.reset()
         rebuild()   // 지구본 키 필요 여부도 여기서 다시 판단한다
+        Haptics.shared.enabled = hasFullAccess   // 전체 접근이 없으면 진동을 시도하지 않는다
         Haptics.shared.prepare()
     }
 
@@ -316,6 +323,13 @@ final class KeyboardViewController: UIInputViewController {
         ret.widthAnchor.constraint(equalToConstant: 56).isActive = true
         talk.widthAnchor.constraint(equalTo: space.widthAnchor).isActive = true
         keyArea.addArrangedSubview(r4)
+        enableMultiTouch(keyArea)
+    }
+
+    /// 앞 손가락이 떨어지기 전에 다음 손가락이 닿아도 입력이 빠지지 않도록, 키 영역의 모든 뷰가 여러 터치를 받게 한다.
+    private func enableMultiTouch(_ v: UIView) {
+        v.isMultipleTouchEnabled = true
+        v.subviews.forEach { enableMultiTouch($0) }
     }
 
     private func setTalkIcon(_ name: String) {

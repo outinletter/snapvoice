@@ -28,4 +28,4 @@
 - 키보드 맨 아래 줄: `123 · 한/A · 누르고 말하기 · space · return`. 한/영은 전용 `한/A` 키(탭), 시작 언어는 앱의 "기본 언어" 설정.
 - 개인정보 처리방침 URL: https://outinletter.github.io/privacy-policy/snapvoicekeyboard.html (앱 링크·App Store Connect 동일). 원문은 https://github.com/outinletter/privacy-policy 저장소의 `snapvoicekeyboard.html`에서 관리하고, 이 저장소의 PRIVACY.md는 사본이다.
 - 앱 이름: App Store 이름 "SnapVoice Keyboard", 표시 이름(CFBundleDisplayName)·앱 화면 제목 `SnapVoiceKeyboard`. 코드 모듈명·타깃명은 `SnapVoice`를 유지한다(바꾸면 키보드 NSExtensionPrincipalClass 등이 깨진다).
-- 상태(2026-11-18): 빌드 3(1.0)을 App Store Connect에 업로드함(심사 점검 후 키보드 확장 PrivacyInfo 추가, 마이크 문구 보완). 터치 영역 30pt·Core Haptics 적용. 제출 전: 시연 영상 교체, 제출 초안의 빌드를 3으로 바꾸기, 콘텐츠 권한 "아니요" 입력, 심사 제출. iOS 27 SDK 의무화는 2027년 4월.
+- 상태(2026-11-18): 빌드 4(1.0)를 App Store Connect에 업로드함(겹친 터치 허용, 햅틱 재시도 방지). 제출 전: 시연 영상 교체, 제출 초안의 빌드를 4로 바꾸기, 콘텐츠 권한 "아니요" 입력, 심사 제출. iOS 27 SDK 의무화는 2027년 4월.
