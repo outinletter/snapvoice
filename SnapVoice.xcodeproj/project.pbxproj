@@ -15,6 +15,7 @@
 		245F4A1407BC0E0F66CD6089 /* DictationEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D7B8E65047F28D44944657B /* DictationEngine.swift */; };
 		4BFB41BD9B021CA55390561A /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = 041074E51C55627E453B62EE /* Localizable.strings */; };
 		5435D7E8A24CD06177833867 /* SnapVoiceKeyboard.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 7E9B6BED73324C2619BE0BF3 /* SnapVoiceKeyboard.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		5AB375D9985C74B4C2813D22 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = CA12191EF0878785299D7FFB /* PrivacyInfo.xcprivacy */; };
 		669A7869AB6F623B3603F045 /* HangulComposer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 158C235F8D267153FDC1DE4E /* HangulComposer.swift */; };
 		729C53536AB949879EAA63C6 /* Bridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49EBDD5FBB4A7565908576BA /* Bridge.swift */; };
 		8733E7E8944344B307C8C282 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 60121260993AD70CD503E179 /* Foundation.framework */; };
@@ -64,6 +65,7 @@
 		AD1589D3AEE1C9C5D45542FB /* App.entitlements */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.entitlements; path = App.entitlements; sourceTree = "<group>"; };
 		B3D8C87F13363729092BE9CA /* KeyboardViewController.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = KeyboardViewController.swift; sourceTree = "<group>"; };
 		BB28D9A40F8A2060DB511898 /* SnapVoice.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SnapVoice.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		CA12191EF0878785299D7FFB /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		D238BA7C512BA89A781EAC08 /* Assets.xcassets */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		DFF39D7276CF7E8C828E7C8A /* ko */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.strings; name = ko; path = ko.lproj/InfoPlist.strings; sourceTree = "<group>"; };
 		FA49A66E17EA60FAE2C1C494 /* SnapVoiceApp.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SnapVoiceApp.swift; sourceTree = "<group>"; };
@@ -112,6 +114,7 @@
 				158C235F8D267153FDC1DE4E /* HangulComposer.swift */,
 				68D16D808EBAE7C63B6C161A /* Info.plist */,
 				2E815E65F0574799F7D86071 /* Keyboard.entitlements */,
+				CA12191EF0878785299D7FFB /* PrivacyInfo.xcprivacy */,
 			);
 			name = Keyboard;
 			path = Keyboard;
@@ -249,6 +252,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				5AB375D9985C74B4C2813D22 /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

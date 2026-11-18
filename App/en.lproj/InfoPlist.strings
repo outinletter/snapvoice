@@ -1,2 +1,2 @@
-"NSMicrophoneUsageDescription" = "SnapVoiceKeyboard uses the microphone to turn your speech into text while you hold the talk button.";
+"NSMicrophoneUsageDescription" = "SnapVoiceKeyboard uses the microphone while a voice session is on, so it can turn your speech into text when you hold the talk key. Nothing is recorded to your device.";
 "NSSpeechRecognitionUsageDescription" = "SnapVoiceKeyboard uses speech recognition to turn what you say into text. If on-device recognition is unavailable, audio may be sent to Apple.";

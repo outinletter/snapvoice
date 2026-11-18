@@ -1,18 +1,87 @@
 import UIKit
+import CoreHaptics
+
+/// 키 햅틱. Core Haptics를 백그라운드 큐에서 돌려 글자 입력을 막지 않고, 연속 타자에서도 겹쳐 울리지 않게 한다.
+/// Core Haptics를 쓸 수 없으면 UIKit 햅틱으로 대신한다. (전체 접근 허용이 켜져 있어야 울린다)
+private final class Haptics {
+    static let shared = Haptics()
+    private let q = DispatchQueue(label: "snapvoice.haptics", qos: .userInteractive)
+    private var engine: CHHapticEngine?
+    private var pattern: CHHapticPattern?
+    private var ready = false
+    private var last = Date.distantPast
+    private let fallback = UIImpactFeedbackGenerator(style: .rigid)
+
+    func prepare() {
+        fallback.prepare()
+        q.async { if !self.ready { self.setup() } }
+    }
+
+    private func setup() {
+        guard CHHapticEngine.capabilitiesForHardware().supportsHaptics else { return }
+        do {
+            let e = try CHHapticEngine()
+            e.playsHapticsOnly = true            // 소리·오디오 세션을 건드리지 않는다
+            e.isAutoShutdownEnabled = false
+            e.resetHandler = { [weak self] in self?.q.async { self?.ready = false; self?.setup() } }
+            e.stoppedHandler = { [weak self] _ in self?.q.async { self?.ready = false } }
+            try e.start()
+            let ev = CHHapticEvent(eventType: .hapticTransient, parameters: [
+                CHHapticEventParameter(parameterID: .hapticIntensity, value: 0.55),
+                CHHapticEventParameter(parameterID: .hapticSharpness, value: 0.9)], relativeTime: 0)
+            pattern = try CHHapticPattern(events: [ev], parameters: [])
+            engine = e; ready = true
+        } catch { ready = false }
+    }
+
+    func tap() {
+        let now = Date()
+        guard now.timeIntervalSince(last) > 0.035 else { return }   // 아주 빠른 연타는 건너뛰어 진동이 뭉치지 않게 한다
+        last = now
+        q.async {
+            if !self.ready { self.setup() }
+            if self.ready, let e = self.engine, let p = self.pattern {
+                do { try e.makePlayer(with: p).start(atTime: CHHapticTimeImmediate); return } catch { self.ready = false }
+            }
+            DispatchQueue.main.async { self.fallback.impactOccurred(intensity: 0.55) }
+        }
+    }
+}
 
 private final class Key: UIButton {
-    static var haptic = UIImpactFeedbackGenerator(style: .light)
-    static var lastFire = Date.distantPast
     override var isHighlighted: Bool { didSet { alpha = isHighlighted ? 0.55 : 1 } }
 
-    // 키를 누르는 순간 햅틱 (전체 접근 허용이 켜져 있어야 울린다)
     override func beginTracking(_ touch: UITouch, with event: UIEvent?) -> Bool {
-        // 터치 순간 바로 울린다. 한동안 안 눌렀으면 생성기를 새로 만들어 끊긴 연결을 복구한다.
-        if Date().timeIntervalSince(Key.lastFire) > 5 { Key.haptic = UIImpactFeedbackGenerator(style: .light) }
-        Key.lastFire = Date()
-        Key.haptic.impactOccurred()
-        Key.haptic.prepare()
+        Haptics.shared.tap()
         return super.beginTracking(touch, with: event)
+    }
+}
+
+/// 키 사이 빈틈과 가장자리를 눌러도 가장 가까운 키가 입력되게 한다(기본 키보드와 같은 방식).
+private final class KeyArea: UIStackView {
+    static let reach: CGFloat = 30   // 키 가장자리에서 이만큼 떨어진 곳까지 그 키로 인식한다
+
+    override func point(inside point: CGPoint, with event: UIEvent?) -> Bool {
+        bounds.insetBy(dx: -12, dy: -16).contains(point)
+    }
+
+    override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
+        guard !isHidden, alpha > 0.01, isUserInteractionEnabled, self.point(inside: point, with: event) else { return nil }
+        if let hit = super.hitTest(point, with: event), hit is UIControl { return hit }
+        var best: (UIControl, CGFloat)?
+        func visit(_ v: UIView) {
+            for sub in v.subviews {
+                if let c = sub as? UIControl, c.isEnabled, !c.isHidden {
+                    let f = c.convert(c.bounds, to: self)
+                    let dx = max(f.minX - point.x, 0, point.x - f.maxX)
+                    let dy = max(f.minY - point.y, 0, point.y - f.maxY)
+                    let d = hypot(dx, dy)
+                    if d <= KeyArea.reach, best == nil || d < best!.1 { best = (c, d) }
+                } else { visit(sub) }
+            }
+        }
+        visit(self)
+        return best?.0
     }
 }
 
@@ -29,7 +98,7 @@ final class KeyboardViewController: UIInputViewController {
 
     private var row2: UIStackView?
     private let talkTitle = L(" 누르고 말하기", " Hold to talk")
-    private let keyArea = UIStackView()
+    private let keyArea = KeyArea()
     private var talk = Key(type: .custom)
     private var holding = false
     private var acked = false
@@ -51,15 +120,13 @@ final class KeyboardViewController: UIInputViewController {
         keyArea.spacing = 11.3
         keyArea.distribution = .fillEqually
 
-        let root = UIStackView(arrangedSubviews: [keyArea])
-        root.axis = .vertical
-        root.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(root)
+        keyArea.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(keyArea)
         NSLayoutConstraint.activate([
-            root.topAnchor.constraint(equalTo: view.topAnchor, constant: 8),
-            root.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-            root.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 6.5),
-            root.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -6.5),
+            keyArea.topAnchor.constraint(equalTo: view.topAnchor, constant: 8),
+            keyArea.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+            keyArea.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 6.5),
+            keyArea.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -6.5),
         ])
         rebuild()
 
@@ -95,7 +162,7 @@ final class KeyboardViewController: UIInputViewController {
         }
         composer.reset()
         rebuild()   // 지구본 키 필요 여부도 여기서 다시 판단한다
-        Key.haptic.prepare()
+        Haptics.shared.prepare()
     }
 
     /// 앱에서 정한 높이를 반영한다. 가로 모드에서는 화면을 덜 가리도록 낮춘다.
@@ -113,7 +180,7 @@ final class KeyboardViewController: UIInputViewController {
         super.viewDidAppear(animated)
         // iOS는 화면 가장자리 제스처를 가리려고 터치 시작을 늦춘다. 끄지 않으면 가장자리 키가 굼뜨다.
         view.window?.gestureRecognizers?.forEach { $0.delaysTouchesBegan = false }
-        Key.haptic = UIImpactFeedbackGenerator(style: .light); Key.haptic.prepare()
+        Haptics.shared.prepare()
         if !hasFullAccess { setTalk(L(" 전체 접근을 켜 주세요", " Turn on Full Access"), revert: true) }   // 햅틱·받아쓰기에 필요
     }
 
