@@ -30,4 +30,4 @@
 - 앱 이름: App Store 이름 "SnapVoice Keyboard", 표시 이름(CFBundleDisplayName)·앱 화면 제목 `SnapVoiceKeyboard`. 코드 모듈명·타깃명은 `SnapVoice`를 유지한다(바꾸면 키보드 NSExtensionPrincipalClass 등이 깨진다).
 - 키보드 화면은 `Keyboard/KeyCanvas.swift`의 단일 뷰(키 레이어 + 한 곳의 터치 처리, 가까운 키 30pt)로 그린다. 한글 조합은 지우고 쓰는 방식을 유지한다(임시 표시 marked text는 조합이 깨져 되돌림).
 - 세션 중 햅틱이 막히지 않도록 `DictationEngine.activate`에서 `setAllowHapticsAndSystemSoundsDuringRecording(true)`를 켠다.
-- 상태(2026-11-19): 1.0(빌드 2)은 App Store에 배포됨. 1.0.1(빌드 6: 키 캔버스, 햅틱 허용, 블루투스 A2DP 유지, 키 높이 확대, 반복·대기 시간 단축)을 업로드하고 업데이트 심사 제출 진행. 새 빌드는 항상 버전을 올리고 빌드 번호를 하나 더 올린다.
+- 상태(2026-11-19): 1.0(빌드 2)은 App Store에 배포됨. 1.0.1(빌드 6: 키 캔버스, 햅틱 허용, 블루투스 A2DP 유지, 키 높이 확대, 반복·대기 시간 단축)을 업데이트 심사에 제출함(심사 대기 중). 새 빌드는 항상 버전을 올리고 빌드 번호를 하나 더 올린다.
