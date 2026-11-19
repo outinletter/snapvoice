@@ -21,6 +21,7 @@
 		8733E7E8944344B307C8C282 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 60121260993AD70CD503E179 /* Foundation.framework */; };
 		888C47D4D41C3BB23B6C9963 /* Bridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49EBDD5FBB4A7565908576BA /* Bridge.swift */; };
 		B1F18B61DC1FE793276AB334 /* AppIntents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 62E2EE88086B23C8190B69F7 /* AppIntents.swift */; };
+		DFAE9D9849799AF50F412FED /* KeyCanvas.swift in Sources */ = {isa = PBXBuildFile; fileRef = 590EE95735DDF865D820F8A1 /* KeyCanvas.swift */; };
 		EC6D1060C1E0F6D68D035517 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D238BA7C512BA89A781EAC08 /* Assets.xcassets */; };
 /* End PBXBuildFile section */
 
@@ -55,6 +56,7 @@
 		2C931A24AC04F98D47D1A9B8 /* en */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
 		2E815E65F0574799F7D86071 /* Keyboard.entitlements */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.entitlements; path = Keyboard.entitlements; sourceTree = "<group>"; };
 		49EBDD5FBB4A7565908576BA /* Bridge.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = Bridge.swift; sourceTree = "<group>"; };
+		590EE95735DDF865D820F8A1 /* KeyCanvas.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = KeyCanvas.swift; sourceTree = "<group>"; };
 		60121260993AD70CD503E179 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
 		62E2EE88086B23C8190B69F7 /* AppIntents.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AppIntents.swift; sourceTree = "<group>"; };
 		68D16D808EBAE7C63B6C161A /* Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -115,6 +117,7 @@
 				68D16D808EBAE7C63B6C161A /* Info.plist */,
 				2E815E65F0574799F7D86071 /* Keyboard.entitlements */,
 				CA12191EF0878785299D7FFB /* PrivacyInfo.xcprivacy */,
+				590EE95735DDF865D820F8A1 /* KeyCanvas.swift */,
 			);
 			name = Keyboard;
 			path = Keyboard;
@@ -277,6 +280,7 @@
 				06B44E3A6DDCC2153EFE651D /* KeyboardViewController.swift in Sources */,
 				669A7869AB6F623B3603F045 /* HangulComposer.swift in Sources */,
 				888C47D4D41C3BB23B6C9963 /* Bridge.swift in Sources */,
+				DFAE9D9849799AF50F412FED /* KeyCanvas.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

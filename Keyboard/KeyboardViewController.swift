@@ -3,7 +3,7 @@ import CoreHaptics
 
 /// 키 햅틱. Core Haptics를 백그라운드 큐에서 돌려 글자 입력을 막지 않고, 연속 타자에서도 겹쳐 울리지 않게 한다.
 /// Core Haptics를 쓸 수 없으면 UIKit 햅틱으로 대신한다. (전체 접근 허용이 켜져 있어야 울린다)
-private final class Haptics {
+final class Haptics {
     static let shared = Haptics()
     private let q = DispatchQueue(label: "snapvoice.haptics", qos: .userInteractive)
     private var engine: CHHapticEngine?
@@ -52,43 +52,6 @@ private final class Haptics {
     }
 }
 
-private final class Key: UIButton {
-    override var isHighlighted: Bool { didSet { alpha = isHighlighted ? 0.55 : 1 } }
-
-    override func beginTracking(_ touch: UITouch, with event: UIEvent?) -> Bool {
-        Haptics.shared.tap()
-        return super.beginTracking(touch, with: event)
-    }
-}
-
-/// 키 사이 빈틈과 가장자리를 눌러도 가장 가까운 키가 입력되게 한다(기본 키보드와 같은 방식).
-private final class KeyArea: UIStackView {
-    static let reach: CGFloat = 30   // 키 가장자리에서 이만큼 떨어진 곳까지 그 키로 인식한다
-
-    override func point(inside point: CGPoint, with event: UIEvent?) -> Bool {
-        bounds.insetBy(dx: -12, dy: -16).contains(point)
-    }
-
-    override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
-        guard !isHidden, alpha > 0.01, isUserInteractionEnabled, self.point(inside: point, with: event) else { return nil }
-        if let hit = super.hitTest(point, with: event), hit is UIControl { return hit }
-        var best: (UIControl, CGFloat)?
-        func visit(_ v: UIView) {
-            for sub in v.subviews {
-                if let c = sub as? UIControl, c.isEnabled, !c.isHidden {
-                    let f = c.convert(c.bounds, to: self)
-                    let dx = max(f.minX - point.x, 0, point.x - f.maxX)
-                    let dy = max(f.minY - point.y, 0, point.y - f.maxY)
-                    let d = hypot(dx, dy)
-                    if d <= KeyArea.reach, best == nil || d < best!.1 { best = (c, d) }
-                } else { visit(sub) }
-            }
-        }
-        visit(self)
-        return best?.0
-    }
-}
-
 final class KeyboardViewController: UIInputViewController {
     private enum Layer { case korean, english, number, symbol }
 
@@ -100,10 +63,8 @@ final class KeyboardViewController: UIInputViewController {
     private var lastShiftTap = Date.distantPast
     private var composer = HangulComposer()
 
-    private var row2: UIStackView?
-    private let talkTitle = L(" 누르고 말하기", " Hold to talk")
-    private let keyArea = KeyArea()
-    private var talk = Key(type: .custom)
+    private let talkTitle = L("누르고 말하기", "Hold to talk")
+    private let canvas = KeyCanvas()
     private var holding = false
     private var acked = false
     private var pressID = 0
@@ -121,19 +82,20 @@ final class KeyboardViewController: UIInputViewController {
         super.viewDidLoad()
 
         view.isMultipleTouchEnabled = true
-        keyArea.isMultipleTouchEnabled = true
-        keyArea.axis = .vertical
-        keyArea.spacing = 11.3
-        keyArea.distribution = .fillEqually
-
-        keyArea.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(keyArea)
+        canvas.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(canvas)
         NSLayoutConstraint.activate([
-            keyArea.topAnchor.constraint(equalTo: view.topAnchor, constant: 8),
-            keyArea.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-            keyArea.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 6.5),
-            keyArea.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -6.5),
+            canvas.topAnchor.constraint(equalTo: view.topAnchor),
+            canvas.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+            canvas.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            canvas.trailingAnchor.constraint(equalTo: view.trailingAnchor),
         ])
+        canvas.onDown = { [weak self] id in self?.keyDown(id) }
+        canvas.onUp = { [weak self] id, inside in self?.keyUp(id, inside) }
+        canvas.onGlobe = { [weak self] b in
+            guard let self else { return }
+            b.addTarget(self, action: #selector(self.handleInputModeList(from:with:)), for: .allTouchEvents)
+        }
         rebuild()
 
         Bridge.observe(.partial) { [weak self] in
@@ -188,50 +150,10 @@ final class KeyboardViewController: UIInputViewController {
         // iOS는 화면 가장자리 제스처를 가리려고 터치 시작을 늦춘다. 끄지 않으면 가장자리 키가 굼뜨다.
         view.window?.gestureRecognizers?.forEach { $0.delaysTouchesBegan = false }
         Haptics.shared.prepare()
-        if !hasFullAccess { setTalk(L(" 전체 접근을 켜 주세요", " Turn on Full Access"), revert: true) }   // 햅틱·받아쓰기에 필요
-    }
-
-    // SnapVoice 고유 디자인: 보라·파랑 강조색, 둥근 키, 둥근 글꼴 (기본 키보드와 구별)
-    private static let accent = UIColor(red: 0.36, green: 0.33, blue: 0.95, alpha: 1)
-    private static let keyColor = UIColor { $0.userInterfaceStyle == .dark ? UIColor(white: 1, alpha: 0.14) : .white }
-    private static let fnColor = UIColor { $0.userInterfaceStyle == .dark
-        ? UIColor(red: 0.36, green: 0.33, blue: 0.95, alpha: 0.38) : UIColor(red: 0.36, green: 0.33, blue: 0.95, alpha: 0.20) }
-
-    private func makeKey(_ title: String, fn: Bool = false, size: CGFloat = 22) -> Key {
-        let b = Key(type: .custom)
-        b.setTitle(title, for: .normal)
-        b.setTitleColor(.label, for: .normal)
-        let base = UIFont.systemFont(ofSize: size, weight: .medium)
-        b.titleLabel?.font = base.fontDescriptor.withDesign(.rounded).map { UIFont(descriptor: $0, size: size) } ?? base
-        b.titleLabel?.adjustsFontSizeToFitWidth = true
-        b.titleLabel?.minimumScaleFactor = 0.6
-        b.backgroundColor = fn ? Self.fnColor : Self.keyColor
-        b.layer.cornerRadius = 12
-        b.setContentCompressionResistancePriority(.defaultLow, for: .vertical)
-        b.setContentHuggingPriority(.defaultLow, for: .vertical)
-        return b
-    }
-
-    private func symbol(_ name: String, fn: Bool = true) -> Key {
-        let b = makeKey("", fn: fn)
-        b.setImage(UIImage(systemName: name), for: .normal)
-        b.tintColor = .label
-        b.accessibilityLabel = [
-            "delete.left": L("삭제", "Delete"), "return": L("줄바꿈", "Return"), "globe": L("다음 키보드", "Next keyboard"),
-            "shift": L("쉬프트", "Shift"), "shift.fill": L("쉬프트 켜짐", "Shift on"), "capslock.fill": L("쉬프트 고정", "Caps Lock"),
-        ][name]
-        return b
-    }
-
-    private func row(_ views: [UIView], inset: CGFloat = 0, spacing: CGFloat = 6) -> UIStackView {
-        let s = UIStackView(arrangedSubviews: views)
-        s.spacing = spacing; s.distribution = .fillEqually
-        if inset > 0 { s.isLayoutMarginsRelativeArrangement = true; s.layoutMargins = UIEdgeInsets(top: 0, left: inset, bottom: 0, right: inset) }
-        return s
+        if !hasFullAccess { setTalk(L("전체 접근을 켜 주세요", "Turn on Full Access"), revert: true) }   // 햅틱·받아쓰기에 필요
     }
 
     private func rebuild() {
-        keyArea.arrangedSubviews.forEach { keyArea.removeArrangedSubview($0); $0.removeFromSuperview() }
         let rows: [String]
         switch layer {
         case .korean: rows = shift > 0 ? koShift : koRows
@@ -239,121 +161,85 @@ final class KeyboardViewController: UIInputViewController {
         case .number: rows = numRows
         case .symbol: rows = symRows
         }
-        func letters(_ s: String) -> [UIView] {
-            s.map { ch in
-                let k = makeKey(String(ch))
-                k.addAction(UIAction { [weak self] _ in self?.typeLetter(String(ch)) }, for: .touchDown)
+        func letters(_ s: String, lastGap: CGFloat = 6) -> [KeySpec] {
+            let chars = Array(s)
+            return chars.enumerated().map { i, ch in
+                var k = KeySpec(id: .letter(String(ch)), title: String(ch))
+                if i == chars.count - 1 { k.gapAfter = lastGap }
                 return k
             }
         }
-        keyArea.addArrangedSubview(row(letters(rows[0])))
-        let r2 = row(letters(rows[1]))
-        r2.isLayoutMarginsRelativeArrangement = true
-        row2 = (rows[1].count < 10 && layer != .number && layer != .symbol) ? r2 : nil
-        keyArea.addArrangedSubview(r2)
+        let isLetters = layer == .korean || layer == .english
+        var specs: [[KeySpec]] = [letters(rows[0]), letters(rows[1])]
+        let inset2 = rows[1].count < 10 && isLetters
 
         // 3행: [모드키] 글자들 [삭제]
-        let left: Key
+        var left: KeySpec
         if layer == .number || layer == .symbol {
-            left = makeKey(layer == .number ? "#+=" : "123", fn: true, size: 15)
-            left.addAction(UIAction { [weak self] _ in
-                guard let self else { return }
-                self.layer = self.layer == .number ? .symbol : .number; self.rebuild()
-            }, for: .touchUpInside)
+            left = KeySpec(id: .symbols, title: layer == .number ? "#+=" : "123", style: .fn, fontSize: 15, width: 45, gapAfter: 14)
         } else {
-            left = symbol(shift == 2 ? "capslock.fill" : (shift == 1 ? "shift.fill" : "shift"))
-            left.addAction(UIAction { [weak self] _ in self?.tapShift() }, for: .touchUpInside)
+            let name = shift == 2 ? "capslock.fill" : (shift == 1 ? "shift.fill" : "shift")
+            let label = shift == 2 ? L("쉬프트 고정", "Caps Lock") : (shift == 1 ? L("쉬프트 켜짐", "Shift on") : L("쉬프트", "Shift"))
+            left = KeySpec(id: .shift, symbol: name, style: .fn, width: 45, gapAfter: 14, label: label)
         }
-        let del = symbol("delete.left")
-        del.addAction(UIAction { [weak self] _ in self?.startDelete() }, for: .touchDown)
-        del.addAction(UIAction { [weak self] _ in self?.stopDelete() }, for: [.touchUpInside, .touchUpOutside, .touchCancel])
-        let mid = row(letters(rows[2]))
-        let r3 = UIStackView(arrangedSubviews: [left, mid, del])
-        r3.spacing = 14
-        left.widthAnchor.constraint(equalToConstant: 45).isActive = true
-        del.widthAnchor.constraint(equalToConstant: 45).isActive = true
-        keyArea.addArrangedSubview(r3)
+        let del = KeySpec(id: .delete, symbol: "delete.left", style: .fn, width: 45, label: L("삭제", "Delete"))
+        specs.append([left] + letters(rows[2], lastGap: 14) + [del])
 
-        // 4행: [123] [한/A] [지구본] [누르고 말하기] [space] [return]
-        let isLetters = layer == .korean || layer == .english
-        let modeKey = makeKey(isLetters ? "123" : (lastLetter == .korean ? "가" : "ABC"), fn: true, size: 18)
-        modeKey.addAction(UIAction { [weak self] _ in
-            guard let self else { return }
-            self.composer.reset()
-            self.layer = (self.layer == .korean || self.layer == .english) ? .number : self.lastLetter
-            self.rebuild()
-        }, for: .touchUpInside)
-        talk = makeKey(talkTitle, size: 13)
-        talk.setImage(UIImage(systemName: "mic.fill", withConfiguration: UIImage.SymbolConfiguration(pointSize: 13)), for: .normal)
-        talk.accessibilityLabel = L("누르고 말하기", "Hold to talk")
-        talk.accessibilityHint = L("누르고 있는 동안 말하면 글자로 입력됩니다", "Speak while holding to insert text")
-        talk.tintColor = .white
-        talk.setTitleColor(.white, for: .normal)
-        talk.backgroundColor = Self.accent
-        talk.titleLabel?.numberOfLines = 2
-        talk.titleLabel?.textAlignment = .center
-        talk.titleLabel?.lineBreakMode = .byTruncatingHead
-        talk.addTarget(self, action: #selector(talkDown), for: .touchDown)
-        talk.addTarget(self, action: #selector(talkUp), for: [.touchUpInside, .touchUpOutside, .touchCancel])
-        // 한/영 전환 전용 키: 현재 언어를 "한" 또는 "A"로 표시하고, 누르면 바뀐다.
-        let lang = makeKey(lastLetter == .korean ? "한" : "A", fn: true, size: 18)
-        lang.accessibilityLabel = L("한영 전환", "Switch language")
-        lang.accessibilityValue = lastLetter == .korean ? L("한글", "Korean") : L("영어", "English")
-        lang.addAction(UIAction { [weak self] _ in self?.toggleLanguage() }, for: .touchUpInside)
-        let space = makeKey("space", size: 15)
-        space.accessibilityLabel = L("스페이스", "Space")
-        space.setTitleColor(.secondaryLabel, for: .normal)
-        space.addAction(UIAction { [weak self] _ in self?.composer.reset(); self?.textDocumentProxy.insertText(" ") }, for: .touchUpInside)
-        let ret = symbol("return")
-        ret.backgroundColor = Self.accent
-        ret.tintColor = .white
-        ret.addAction(UIAction { [weak self] _ in self?.composer.reset(); self?.textDocumentProxy.insertText("\n") }, for: .touchUpInside)
-
-        var left4: [UIView] = [modeKey]
+        // 4행: [123] [지구본] [한/A] [누르고 말하기] [space] [return]
+        var r4: [KeySpec] = [KeySpec(id: .mode, title: isLetters ? "123" : (lastLetter == .korean ? "가" : "ABC"), style: .fn, fontSize: 18, width: 56,
+                                     label: isLetters ? L("숫자", "Numbers") : L("글자", "Letters"))]
         if needsInputModeSwitchKey {   // 홈 버튼 기기에서만 자체 지구본 표시
-            let globe = symbol("globe")
-            globe.addTarget(self, action: #selector(handleInputModeList(from:with:)), for: .allTouchEvents)
-            left4.append(globe)
+            r4.append(KeySpec(id: .globe, symbol: "globe", style: .fn, width: 44, label: L("다음 키보드", "Next keyboard")))
         }
-        let r4 = UIStackView(arrangedSubviews: left4 + [lang, talk, space, ret])
-        r4.spacing = 6; r4.distribution = .fill
-        modeKey.widthAnchor.constraint(equalToConstant: 56).isActive = true
-        lang.widthAnchor.constraint(equalToConstant: 44).isActive = true
-        left4.dropFirst().forEach { $0.widthAnchor.constraint(equalToConstant: 44).isActive = true }
-        ret.widthAnchor.constraint(equalToConstant: 56).isActive = true
-        talk.widthAnchor.constraint(equalTo: space.widthAnchor).isActive = true
-        keyArea.addArrangedSubview(r4)
-        enableMultiTouch(keyArea)
+        r4.append(KeySpec(id: .lang, title: lastLetter == .korean ? "한" : "A", style: .fn, fontSize: 18, width: 44,
+                          label: L("한영 전환", "Switch language"), value: lastLetter == .korean ? L("한글", "Korean") : L("영어", "English")))
+        r4.append(KeySpec(id: .talk, title: talkTitle, symbol: "mic.fill", style: .accent, fontSize: 13,
+                          label: L("누르고 말하기", "Hold to talk"), hint: L("누르고 있는 동안 말하면 글자로 입력됩니다", "Speak while holding to insert text")))
+        r4.append(KeySpec(id: .space, title: "space", fontSize: 15, titleColor: .secondaryLabel, label: L("스페이스", "Space")))
+        r4.append(KeySpec(id: .ret, symbol: "return", style: .accent, width: 56, label: L("줄바꿈", "Return")))
+        specs.append(r4)
+
+        canvas.insetRows = [false, inset2, false, false]
+        canvas.rows = specs
     }
 
-    /// 앞 손가락이 떨어지기 전에 다음 손가락이 닿아도 입력이 빠지지 않도록, 키 영역의 모든 뷰가 여러 터치를 받게 한다.
-    private func enableMultiTouch(_ v: UIView) {
-        v.isMultipleTouchEnabled = true
-        v.subviews.forEach { enableMultiTouch($0) }
+    // MARK: 키 입력 (터치 순간 / 뗄 때)
+    private func keyDown(_ id: KeyID) {
+        switch id {
+        case .letter(let s): typeLetter(s)
+        case .delete: startDelete()
+        case .space: composer.reset(); textDocumentProxy.insertText(" ")
+        case .ret: composer.reset(); textDocumentProxy.insertText("\n")
+        case .talk: talkDown()
+        default: break
+        }
     }
 
-    private func setTalkIcon(_ name: String) {
-        talk.setImage(UIImage(systemName: name, withConfiguration: UIImage.SymbolConfiguration(pointSize: 13)), for: .normal)
+    private func keyUp(_ id: KeyID, _ inside: Bool) {
+        switch id {
+        case .delete: stopDelete()
+        case .talk: talkUp()
+        case .shift where inside: tapShift()
+        case .symbols where inside: layer = layer == .number ? .symbol : .number; rebuild()
+        case .mode where inside:
+            composer.reset()
+            layer = (layer == .korean || layer == .english) ? .number : lastLetter
+            rebuild()
+        case .lang where inside: toggleLanguage()
+        default: break
+        }
     }
+
+    private func setTalkIcon(_ name: String) { canvas.update(.talk, symbol: .some(name)) }
 
     private func setTalk(_ t: String, revert: Bool = false, icon: String? = nil) {
-        talk.setTitle(t, for: .normal)
-        if let icon { setTalkIcon(icon) }
+        canvas.update(.talk, title: t, symbol: icon.map { .some($0) })
         if revert {
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self] in
                 guard let self, !self.holding else { return }
-                self.talk.setTitle(self.talkTitle, for: .normal)
-                self.setTalkIcon("mic.fill")
+                self.canvas.update(.talk, title: self.talkTitle, symbol: .some("mic.fill"))
             }
         }
-    }
-
-    override func viewDidLayoutSubviews() {
-        super.viewDidLayoutSubviews()
-        let w = view.bounds.width - 13
-        let key = (w - 9 * 6) / 10
-        let inset = (key + 6) / 2
-        row2?.layoutMargins = UIEdgeInsets(top: 0, left: inset, bottom: 0, right: inset)
     }
 
     // MARK: 입력
@@ -397,7 +283,7 @@ final class KeyboardViewController: UIInputViewController {
         deleteOnce()
         repeatTimer?.invalidate()
         repeatTimer = Timer.scheduledTimer(withTimeInterval: 0.4, repeats: false) { [weak self] _ in
-            self?.repeatTimer = Timer.scheduledTimer(withTimeInterval: 0.07, repeats: true) { _ in self?.deleteOnce() }
+            self?.repeatTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { _ in self?.deleteOnce() }
         }
     }
     private func stopDelete() { repeatTimer?.invalidate(); repeatTimer = nil }
@@ -408,14 +294,13 @@ final class KeyboardViewController: UIInputViewController {
         lastLetter = lastLetter == .korean ? .english : .korean
         layer = lastLetter; shift = 0
         Bridge.set(lastLetter == .korean ? "ko" : "en", Bridge.Key.lang)
-        UIImpactFeedbackGenerator(style: .light).impactOccurred()
         rebuild()
     }
 
-    @objc private func talkDown() {
+    private func talkDown() {
         guard hasFullAccess else { setTalk(L("전체 접근 허용 필요", "Allow Full Access"), revert: true); return }
         guard Bridge.isSessionAlive else {
-            setTalk(L(" 세션 꺼짐", " Session off"), revert: true, icon: "mic.slash.fill")   // 키보드는 다른 앱을 열지 않는다(4.4.1)
+            setTalk(L("세션 꺼짐", "Session off"), revert: true, icon: "mic.slash.fill")   // 키보드는 다른 앱을 열지 않는다(4.4.1)
             return
         }
         holding = true; acked = false; pressID += 1
@@ -426,11 +311,11 @@ final class KeyboardViewController: UIInputViewController {
             self.setTalk(L("앱 응답 없음", "No response"))
         }
         setTalk(L("연결 중…", "Connecting…"))
-        talk.backgroundColor = .systemRed
+        canvas.update(.talk, fill: .some(UIColor.systemRed))
         Bridge.post(.start)
     }
 
-    @objc private func talkUp() {
+    private func talkUp() {
         guard holding else { return }
         holding = false; waiting = true
         setTalk(L("변환 중…", "Transcribing…"))
@@ -440,14 +325,14 @@ final class KeyboardViewController: UIInputViewController {
             self.waiting = false
             self.setTalk(L("앱 응답 없음", "No response"), revert: true)
         }
-        talk.backgroundColor = Self.accent
+        canvas.update(.talk, fill: .some(nil))
         Bridge.post(.stop)
     }
 
     private func finishDictation() {
         guard waiting || holding else { return }   // 기다리지 않는 결과는 무시
         waiting = false
-        if holding { holding = false; talk.backgroundColor = Self.accent }
+        if holding { holding = false; canvas.update(.talk, fill: .some(nil)) }
         let text = Bridge.get(Bridge.Key.final)
         let err = Bridge.get(Bridge.Key.error)
         setTalk(text.isEmpty ? (err.isEmpty ? L("인식 없음", "Nothing heard") : err) : L("입력됨", "Inserted"), revert: true)

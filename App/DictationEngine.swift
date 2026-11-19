@@ -51,6 +51,8 @@ final class DictationEngine: ObservableObject {
     private func activate() throws {
         let s = AVAudioSession.sharedInstance()
         try s.setCategory(.playAndRecord, mode: .default, options: [.mixWithOthers, .defaultToSpeaker])
+        // 녹음 중에는 iOS가 진동을 막는다. 키보드 햅틱이 세션이 켜진 동안에도 울리도록 허용한다.
+        try? s.setAllowHapticsAndSystemSoundsDuringRecording(true)
         try s.setActive(true)
         let input = engine.inputNode
         input.removeTap(onBus: 0)
