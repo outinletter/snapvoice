@@ -50,7 +50,7 @@ final class DictationEngine: ObservableObject {
     /// 마이크 입력을 (다시) 켠다. 엔진이 돌고 있으면 그대로 둔다.
     private func activate() throws {
         let s = AVAudioSession.sharedInstance()
-        try s.setCategory(.playAndRecord, mode: .default, options: [.mixWithOthers, .defaultToSpeaker])
+        try s.setCategory(.playAndRecord, mode: .default, options: [.mixWithOthers, .defaultToSpeaker, .allowBluetoothA2DP])   // 블루투스 이어폰의 재생(A2DP)을 끊지 않는다. 마이크는 내장 마이크를 쓴다
         // 녹음 중에는 iOS가 진동을 막는다. 키보드 햅틱이 세션이 켜진 동안에도 울리도록 허용한다.
         try? s.setAllowHapticsAndSystemSoundsDuringRecording(true)
         try s.setActive(true)
@@ -190,7 +190,7 @@ final class DictationEngine: ObservableObject {
         let gen = generation
         request?.endAudio()
         // 최종 결과가 늦으면 중간 결과로 전달
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self] in self?.deliver(gen) }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.9) { [weak self] in self?.deliver(gen) }   // 최종 결과가 늦으면 중간 결과로 빨리 전달
     }
 
     private func deliver(_ gen: Int) {

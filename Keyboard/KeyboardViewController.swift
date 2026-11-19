@@ -282,8 +282,8 @@ final class KeyboardViewController: UIInputViewController {
     private func startDelete() {
         deleteOnce()
         repeatTimer?.invalidate()
-        repeatTimer = Timer.scheduledTimer(withTimeInterval: 0.4, repeats: false) { [weak self] _ in
-            self?.repeatTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { _ in self?.deleteOnce() }
+        repeatTimer = Timer.scheduledTimer(withTimeInterval: 0.25, repeats: false) { [weak self] _ in
+            self?.repeatTimer = Timer.scheduledTimer(withTimeInterval: 0.06, repeats: true) { _ in self?.deleteOnce() }
         }
     }
     private func stopDelete() { repeatTimer?.invalidate(); repeatTimer = nil }
