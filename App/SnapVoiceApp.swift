@@ -20,12 +20,15 @@ struct SnapVoiceApp: App {
 
 struct ContentView: View {
     @EnvironmentObject var engine: DictationEngine
-    @State private var height = Bridge.keyboardHeight
+    @State private var heightPreset = Bridge.heightPreset
     @State private var sample = ""
     @State private var defaultLang = Bridge.get(Bridge.Key.defaultLang).isEmpty ? "ko" : Bridge.get(Bridge.Key.defaultLang)
     @AppStorage("autoStart") private var autoStart = true
     @AppStorage("onboarded") private var onboarded = false
     @AppStorage("idleMinutes") private var idleMinutes = 1
+    #if DEBUG
+    @State private var metricsText = ""
+    #endif
 
     var body: some View {
         ScrollView {
@@ -53,19 +56,34 @@ struct ContentView: View {
 
                 GroupBox(L("키보드 높이", "Keyboard height")) {
                     VStack(alignment: .leading, spacing: 8) {
-                        HStack {
-                            Slider(value: $height, in: Bridge.heightRange, step: 1)
-                                .accessibilityLabel(L("키보드 높이", "Keyboard height"))
-                            Text("\(Int(height))").monospacedDigit().frame(width: 36)
-                            Button(L("기본값", "Reset")) { height = Bridge.defaultHeight }.font(.footnote)
+                        Picker(L("키보드 높이", "Keyboard height"), selection: $heightPreset) {
+                            ForEach(Bridge.HeightPreset.allCases, id: \.self) { Text($0.label).tag($0) }
                         }
+                        .pickerStyle(.segmented)
                         TextField(L("여기를 눌러 키보드를 띄워 보세요", "Tap here to try the keyboard"), text: $sample, axis: .vertical)
                             .textFieldStyle(.roundedBorder).font(.footnote)
                     }
                 }
-                .onChange(of: height) { _, h in
-                    Bridge.set(String(h), Bridge.Key.height); Bridge.post(.config)
+                .onChange(of: heightPreset) { _, p in
+                    Bridge.set(p.rawValue, Bridge.Key.height); Bridge.post(.config)
                 }
+
+                #if DEBUG
+                GroupBox("키보드 성능 측정 (개발용)") {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("키보드로 입력한 뒤 새로고침을 누르세요. 시간은 ms입니다.\n· ko.type / en.type: 키 하나를 처리하는 시간\n· proxy.insert / delete / read: 입력창 앱에 보낸 요청에 걸린 시간\n· touchDown: 누르는 순간 키보드가 한 작업\n· key.interval: 키와 키 사이 간격\n· frame.gap: 화면이 25ms 넘게 멈춘 횟수와 길이")
+                            .font(.caption2).foregroundStyle(.secondary)
+                        Text(metricsText.isEmpty ? "(기록 없음)" : metricsText)
+                            .font(.system(.caption2, design: .monospaced)).textSelection(.enabled)
+                        HStack {
+                            Button("새로고침") { metricsText = Self.loadMetrics() }
+                            Button("초기화", role: .destructive) {
+                                Bridge.set(String(Date().timeIntervalSince1970), Bridge.Key.metricsReset); metricsText = ""
+                            }
+                        }.font(.footnote)
+                    }.frame(maxWidth: .infinity, alignment: .leading)
+                }
+                #endif
 
                 GroupBox(L("설정 방법", "Setup")) {
                     VStack(alignment: .leading, spacing: 8) {
@@ -166,4 +184,24 @@ struct ContentView: View {
         Text(L("세션이 켜져 있는 동안 화면 위에 마이크 표시가 보입니다.", "The microphone indicator is shown while the session is on."))
             .font(.caption).foregroundStyle(.secondary)
     }
+
+    #if DEBUG
+    static func loadMetrics() -> String {
+        guard let d = Bridge.get(Bridge.Key.metrics).data(using: .utf8),
+              let o = try? JSONSerialization.jsonObject(with: d) as? [String: Any] else { return "" }
+        var lines: [String] = []
+        if let m = o["meta"] as? [String: String], !m.isEmpty {
+            lines.append(m.sorted { $0.key < $1.key }.map { "\($0.key)=\($0.value)" }.joined(separator: " "))
+        }
+        if let c = o["counters"] as? [String: Int], !c.isEmpty {
+            lines.append(c.sorted { $0.key < $1.key }.map { "\($0.key)=\($0.value)" }.joined(separator: " "))
+        }
+        if let st = o["stats"] as? [String: [String: Double]] {
+            for (k, v) in st.sorted(by: { $0.key < $1.key }) {
+                lines.append(String(format: "%@\n  n=%.0f avg %.2f p50 %.2f p95 %.2f max %.1f", k, v["n"] ?? 0, v["avg"] ?? 0, v["p50"] ?? 0, v["p95"] ?? 0, v["max"] ?? 0))
+            }
+        }
+        return lines.joined(separator: "\n")
+    }
+    #endif
 }

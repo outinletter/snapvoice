@@ -20,8 +20,9 @@
 		729C53536AB949879EAA63C6 /* Bridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49EBDD5FBB4A7565908576BA /* Bridge.swift */; };
 		8733E7E8944344B307C8C282 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 60121260993AD70CD503E179 /* Foundation.framework */; };
 		888C47D4D41C3BB23B6C9963 /* Bridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49EBDD5FBB4A7565908576BA /* Bridge.swift */; };
+		92FD30298A893F0F9A11AC2E /* Metrics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CDCA75581AFB784108954C2 /* Metrics.swift */; };
 		B1F18B61DC1FE793276AB334 /* AppIntents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 62E2EE88086B23C8190B69F7 /* AppIntents.swift */; };
-		DFAE9D9849799AF50F412FED /* KeyCanvas.swift in Sources */ = {isa = PBXBuildFile; fileRef = 590EE95735DDF865D820F8A1 /* KeyCanvas.swift */; };
+		B71D2F1CED1DE8D60EA6508B /* KeyButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 099620203BC1A468506BBBFD /* KeyButton.swift */; };
 		EC6D1060C1E0F6D68D035517 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D238BA7C512BA89A781EAC08 /* Assets.xcassets */; };
 /* End PBXBuildFile section */
 
@@ -50,16 +51,17 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		099620203BC1A468506BBBFD /* KeyButton.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = KeyButton.swift; sourceTree = "<group>"; };
 		0D7B8E65047F28D44944657B /* DictationEngine.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DictationEngine.swift; sourceTree = "<group>"; };
 		158C235F8D267153FDC1DE4E /* HangulComposer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = HangulComposer.swift; sourceTree = "<group>"; };
 		1C8B177B551E55A9B918E2AB /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		2C931A24AC04F98D47D1A9B8 /* en */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
 		2E815E65F0574799F7D86071 /* Keyboard.entitlements */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.entitlements; path = Keyboard.entitlements; sourceTree = "<group>"; };
 		49EBDD5FBB4A7565908576BA /* Bridge.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = Bridge.swift; sourceTree = "<group>"; };
-		590EE95735DDF865D820F8A1 /* KeyCanvas.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = KeyCanvas.swift; sourceTree = "<group>"; };
 		60121260993AD70CD503E179 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
 		62E2EE88086B23C8190B69F7 /* AppIntents.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AppIntents.swift; sourceTree = "<group>"; };
 		68D16D808EBAE7C63B6C161A /* Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		7CDCA75581AFB784108954C2 /* Metrics.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = Metrics.swift; sourceTree = "<group>"; };
 		7E9B6BED73324C2619BE0BF3 /* SnapVoiceKeyboard.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = SnapVoiceKeyboard.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		9D816C05254E673BDD43B731 /* en */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/InfoPlist.strings; sourceTree = "<group>"; };
 		9FB41DEA5F26F7803741145D /* Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -117,7 +119,8 @@
 				68D16D808EBAE7C63B6C161A /* Info.plist */,
 				2E815E65F0574799F7D86071 /* Keyboard.entitlements */,
 				CA12191EF0878785299D7FFB /* PrivacyInfo.xcprivacy */,
-				590EE95735DDF865D820F8A1 /* KeyCanvas.swift */,
+				099620203BC1A468506BBBFD /* KeyButton.swift */,
+				7CDCA75581AFB784108954C2 /* Metrics.swift */,
 			);
 			name = Keyboard;
 			path = Keyboard;
@@ -280,7 +283,8 @@
 				06B44E3A6DDCC2153EFE651D /* KeyboardViewController.swift in Sources */,
 				669A7869AB6F623B3603F045 /* HangulComposer.swift in Sources */,
 				888C47D4D41C3BB23B6C9963 /* Bridge.swift in Sources */,
-				DFAE9D9849799AF50F412FED /* KeyCanvas.swift in Sources */,
+				B71D2F1CED1DE8D60EA6508B /* KeyButton.swift in Sources */,
+				92FD30298A893F0F9A11AC2E /* Metrics.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

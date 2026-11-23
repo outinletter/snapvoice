@@ -18,6 +18,8 @@ enum Bridge {
         static let startAt = "startAt"       // 시작 신호를 보낸 시각
         static let height = "height"         // 사용자가 정한 키보드 높이(pt)
         static let defaultLang = "defaultLang" // 시작 언어 설정: ko / en / last
+        static let metrics = "metrics"       // 키보드 성능 측정 결과(JSON, 디버그 빌드)
+        static let metricsReset = "metricsReset"
         static let lang = "lang"             // 키보드 마지막 언어 (ko / en)
         static let locale = "locale"         // 받아쓰기 언어 (ko-KR / en-US)
     }
@@ -40,12 +42,27 @@ enum Bridge {
         return (try? String(contentsOf: dir.appendingPathComponent(key), encoding: .utf8)) ?? ""
     }
 
-    static let defaultHeight = 209.0
-    static let heightRange = 180.0...300.0
-    static var keyboardHeight: Double {
-        guard let h = Double(get(Key.height)) else { return defaultHeight }
-        return min(max(h, heightRange.lowerBound), heightRange.upperBound)
+    /// 키보드 높이 프리셋 (NativeTone과 같은 작게/보통/크게. 상단 바가 없어 NativeTone 값에서 바 높이 44pt를 뺐다)
+    enum HeightPreset: String, CaseIterable {
+        case small, medium, large
+        var points: Double {
+            switch self { case .small: return 202; case .medium: return 232; case .large: return 266 }
+        }
+        var label: String {
+            switch self { case .small: return L("작게", "Small"); case .medium: return L("보통", "Medium"); case .large: return L("크게", "Large") }
+        }
     }
+    static let defaultHeight = HeightPreset.medium.points
+
+    static var heightPreset: HeightPreset {
+        let v = get(Key.height)
+        if let p = HeightPreset(rawValue: v) { return p }
+        if let n = Double(v) {   // 예전 슬라이더 값은 가장 가까운 프리셋으로
+            return HeightPreset.allCases.min { abs($0.points - n) < abs($1.points - n) } ?? .medium
+        }
+        return .medium
+    }
+    static var keyboardHeight: Double { heightPreset.points }
 
     static var isSessionAlive: Bool {
         Date().timeIntervalSince1970 - (Double(get(Key.heartbeat)) ?? 0) < 3
