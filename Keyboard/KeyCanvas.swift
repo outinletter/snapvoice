@@ -14,6 +14,7 @@ struct KeySpec {
     var width: CGFloat?          // nil이면 남는 폭을 나눠 가짐
     var gapAfter: CGFloat = 6
     var titleColor: UIColor?
+    var fill: UIColor?           // 지정하면 기본 배경색 대신 사용 (예: 켜진 쉬프트)
     var label: String?           // VoiceOver
     var value: String?
     var hint: String?
@@ -23,15 +24,17 @@ struct KeySpec {
 /// 버튼 뷰 수십 개를 두는 방식보다 키를 누를 때 하는 일이 훨씬 적다.
 final class KeyCanvas: UIView {
     static let accent = UIColor(red: 0.36, green: 0.33, blue: 0.95, alpha: 1)
-    private static let keyColor = UIColor { $0.userInterfaceStyle == .dark ? UIColor(white: 1, alpha: 0.14) : .white }
+    // 아이폰 기본 키보드와 같은 색: 다크에서는 모든 키가 같은 회색, 라이트에서는 글자 키 흰색·기능 키 회색
+    private static let keyColor = UIColor { $0.userInterfaceStyle == .dark ? UIColor(white: 0.28, alpha: 1) : .white }
     private static let fnColor = UIColor { $0.userInterfaceStyle == .dark
-        ? UIColor(red: 0.36, green: 0.33, blue: 0.95, alpha: 0.38) : UIColor(red: 0.36, green: 0.33, blue: 0.95, alpha: 0.20) }
+        ? UIColor(white: 0.28, alpha: 1) : UIColor(red: 0.68, green: 0.70, blue: 0.74, alpha: 1) }
 
     private static let reach: CGFloat = 30   // 키에서 이만큼 떨어진 곳까지 가장 가까운 키로 인식
     private let margin: CGFloat = 6.5, top: CGFloat = 5, vGap: CGFloat = 6   // 줄 간격을 줄여 키를 키보드 높이 안에서 더 높게
 
     var onDown: ((KeyID) -> Void)?
     var onUp: ((KeyID, Bool) -> Void)?
+    var onCommit: ((KeyID) -> Void)?
     var onGlobe: ((UIButton) -> Void)?
     var insetRows: [Bool] = []
     var rows: [[KeySpec]] = [] { didSet { rebuildLayers() } }
@@ -66,6 +69,10 @@ final class KeyCanvas: UIView {
         items = rows.flatMap { $0 }.map { Item($0) }
         for it in items {
             it.layer.cornerRadius = 8
+            it.layer.shadowColor = UIColor.black.cgColor
+            it.layer.shadowOffset = CGSize(width: 0, height: 1)
+            it.layer.shadowRadius = 0
+            it.layer.shadowOpacity = traitCollection.userInterfaceStyle == .dark ? 0 : 0.3
             layer.addSublayer(it.layer)
             if !it.title.isEmpty { addText(it) }
             if it.symbol != nil { addIcon(it) }
@@ -111,15 +118,13 @@ final class KeyCanvas: UIView {
     }
 
     private func baseFill(_ it: Item) -> UIColor {
+        if let f = it.spec.fill { return f }
         switch it.spec.style { case .normal: return Self.keyColor; case .fn: return Self.fnColor; case .accent: return Self.accent }
     }
     private func textColor(_ it: Item) -> UIColor {
         it.spec.titleColor ?? (it.spec.style == .accent ? .white : .label)
     }
-    private func font(_ size: CGFloat) -> UIFont {
-        let base = UIFont.systemFont(ofSize: size, weight: .medium)
-        return base.fontDescriptor.withDesign(.rounded).map { UIFont(descriptor: $0, size: size) } ?? base
-    }
+    private func font(_ size: CGFloat) -> UIFont { .systemFont(ofSize: size, weight: .regular) }
     private func attributed(_ it: Item) -> NSAttributedString {
         let p = NSMutableParagraphStyle(); p.alignment = .center; p.lineBreakMode = .byTruncatingHead
         return NSAttributedString(string: it.title, attributes: [
@@ -148,7 +153,7 @@ final class KeyCanvas: UIView {
     override func traitCollectionDidChange(_ previous: UITraitCollection?) {
         super.traitCollectionDidChange(previous)
         CATransaction.begin(); CATransaction.setDisableActions(true)
-        refreshAll(); items.forEach { layoutContent($0) }
+        refreshAll(); items.forEach { layoutContent($0); $0.layer.shadowOpacity = traitCollection.userInterfaceStyle == .dark ? 0 : 0.3 }
         CATransaction.commit()
     }
 
@@ -180,6 +185,7 @@ final class KeyCanvas: UIView {
                 let it = items[idx]; idx += 1
                 it.frame = CGRect(x: x, y: y, width: w, height: rowH)
                 it.layer.frame = it.frame
+                it.layer.shadowPath = UIBezierPath(roundedRect: CGRect(origin: .zero, size: it.frame.size), cornerRadius: 8).cgPath
                 layoutContent(it)
                 if it.spec.id == .globe { globeButton?.frame = it.frame }
                 x += w + spec.gapAfter
@@ -206,7 +212,12 @@ final class KeyCanvas: UIView {
         if hasText, let t = it.text { t.frame = CGRect(x: x0 + iconW + gap, y: (b.height - th) / 2, width: tw, height: th) }
     }
 
-    // MARK: 터치
+    // MARK: 터치 (아이폰 기본 키보드와 같게: 손가락을 뗄 때 입력, 누른 채 미끄러지면 손가락 아래 키가 입력)
+    private var popups: [UITouch: CALayer] = [:]
+
+    /// 누르는 동안 계속 동작하는 키(삭제 반복, 누르고 말하기). 나머지는 뗄 때 입력한다.
+    private static func holdKey(_ id: KeyID) -> Bool { id == .delete || id == .talk }
+
     private func key(at p: CGPoint) -> Item? {
         var best: (Item, CGFloat)?
         for it in items where it.spec.id != .globe {
@@ -221,7 +232,7 @@ final class KeyCanvas: UIView {
 
     private func press(_ id: KeyID, _ on: Bool) {
         CATransaction.begin(); CATransaction.setDisableActions(true)
-        for it in items where it.spec.id == id { it.layer.opacity = on ? 0.55 : 1 }
+        for it in items where it.spec.id == id { it.layer.opacity = on ? 0.6 : 1 }
         CATransaction.commit()
     }
 
@@ -230,9 +241,21 @@ final class KeyCanvas: UIView {
             guard let it = key(at: t.location(in: self)) else { continue }
             let id = it.spec.id
             active[t] = id
-            Haptics.shared.tap()
+            Haptics.shared.tap()          // 진동은 닿는 순간 (기본 키보드와 같음)
             press(id, true)
-            onDown?(id)
+            showPopup(t, it)
+            if Self.holdKey(id) { onDown?(id) }
+        }
+    }
+
+    override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
+        for t in touches {
+            guard let cur = active[t], !Self.holdKey(cur),
+                  let it = key(at: t.location(in: self)), it.spec.id != cur, !Self.holdKey(it.spec.id) else { continue }
+            press(cur, false)
+            active[t] = it.spec.id
+            press(it.spec.id, true)
+            showPopup(t, it)
         }
     }
 
@@ -243,9 +266,53 @@ final class KeyCanvas: UIView {
         for t in touches {
             guard let id = active.removeValue(forKey: t) else { continue }
             press(id, false)
-            let inside = !cancelled && key(at: t.location(in: self))?.spec.id == id
-            onUp?(id, inside)
+            hidePopup(t)
+            if Self.holdKey(id) {
+                onUp?(id, !cancelled && key(at: t.location(in: self))?.spec.id == id)
+            } else if !cancelled {
+                onCommit?(id)
+            }
         }
+    }
+
+    // MARK: 키 미리보기 (눌린 글자 키 위에 크게)
+    private func showPopup(_ t: UITouch, _ it: Item) {
+        hidePopup(t)
+        guard case .letter(let s) = it.spec.id, !s.isEmpty else { return }
+        let f = it.frame
+        let w = f.width * 1.5, h = f.height * 1.2
+        var x = f.midX - w / 2
+        x = max(2, min(bounds.width - w - 2, x))
+        var y = f.minY - h - 6
+        if y < 2 { y = max(2, f.midY - h / 2) }          // 맨 윗줄은 위 공간이 없어 키 위에 겹쳐 그린다
+        CATransaction.begin(); CATransaction.setDisableActions(true)
+        let bubble = CALayer()
+        bubble.frame = CGRect(x: x, y: y, width: w, height: h)
+        bubble.cornerRadius = 10
+        bubble.backgroundColor = Self.keyColor.resolvedColor(with: traitCollection).cgColor
+        bubble.shadowColor = UIColor.black.cgColor
+        bubble.shadowOffset = CGSize(width: 0, height: 2)
+        bubble.shadowRadius = 4
+        bubble.shadowOpacity = 0.3
+        bubble.zPosition = 100
+        let text = CATextLayer()
+        text.contentsScale = traitCollection.displayScale
+        text.alignmentMode = .center
+        let f34 = UIFont.systemFont(ofSize: 34, weight: .regular)
+        text.string = NSAttributedString(string: s, attributes: [
+            .font: f34, .foregroundColor: UIColor.label.resolvedColor(with: traitCollection)])
+        text.frame = CGRect(x: 0, y: (h - f34.lineHeight) / 2, width: w, height: ceil(f34.lineHeight))
+        bubble.addSublayer(text)
+        layer.addSublayer(bubble)
+        popups[t] = bubble
+        CATransaction.commit()
+    }
+
+    private func hidePopup(_ t: UITouch) {
+        guard let b = popups.removeValue(forKey: t) else { return }
+        CATransaction.begin(); CATransaction.setDisableActions(true)
+        b.removeFromSuperlayer()
+        CATransaction.commit()
     }
 
     // MARK: VoiceOver
@@ -266,7 +333,9 @@ final class KeyCanvas: UIView {
         set {}
     }
 
-    fileprivate func activate(_ id: KeyID) { onDown?(id); onUp?(id, true) }
+    fileprivate func activate(_ id: KeyID) {
+        if Self.holdKey(id) { onDown?(id); onUp?(id, true) } else { onCommit?(id) }
+    }
 }
 
 private final class AXKey: UIAccessibilityElement {

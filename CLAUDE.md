@@ -21,7 +21,7 @@
 - 스킴 `SnapVoice`, 타깃 `SnapVoice`, `SnapVoiceKeyboard`, 팀 A7QB8PT33N.
 - 빌드: `xcodebuild -project SnapVoice.xcodeproj -scheme SnapVoice -destination 'generic/platform=iOS' -allowProvisioningUpdates -quiet build`
 - 키보드 높이 기본 209pt(iPhone 16 Pro 기본 키보드 기준). 앱의 슬라이더(180~300)로 바꾸며 공유 폴더 `height` 파일로 전달한다.
-- 심사 대응: 키보드에서 앱을 열지 않는다(4.4.1, Debug 빌드에서도 열지 않음). 세션이 꺼졌을 때는 동작 버튼/단축어의 App Intent(`App/AppIntents.swift`)로 켠다, 키에 이모지를 쓰지 않는다(5.2.5), 키 디자인은 기본 키보드와 구별되는 강조색·둥근 키를 유지한다.
+- 심사 대응: 키보드에서 앱을 열지 않는다(4.4.1, Debug 빌드에서도 열지 않음). 세션이 꺼졌을 때는 동작 버튼/단축어의 App Intent(`App/AppIntents.swift`)로 켠다, 키에 이모지를 쓰지 않는다(5.2.5). 키 디자인은 사용자 지시(2026-11-23)로 누르고 말하기 키만 강조색이고 나머지는 아이폰 기본 키보드와 같다(색·글꼴·키 미리보기·뗄 때 입력). 5.2.5 혼동 우려는 인지된 위험이다.
 - 세션은 앱이 활성화될 때 자동으로 켜진다(`autoStart`, 기본 켬). iOS는 키보드 확장의 마이크 사용과 백그라운드에서의 녹음 시작을 막으므로, 앱을 한 번도 열지 않은 상태에서 키보드만으로 받아쓰기를 시작할 수는 없다.
 - 사용자에게 보이는 문구는 모두 `L("한국어", "English")`로 쓴다. 권한 문구는 `App/*.lproj/InfoPlist.strings`.
 - 첫 실행 때 마이크 사용 동의(`onboarded`)를 받은 뒤에만 세션을 켠다. 세션은 `idleMinutes`(기본 1분, 선택지 1·3·5·15·30분, 끄지 않음 없음) 동안 안 쓰면 자동으로 꺼진다.
@@ -30,4 +30,4 @@
 - 앱 이름: App Store 이름 "SnapVoice Keyboard", 표시 이름(CFBundleDisplayName)·앱 화면 제목 `SnapVoiceKeyboard`. 코드 모듈명·타깃명은 `SnapVoice`를 유지한다(바꾸면 키보드 NSExtensionPrincipalClass 등이 깨진다).
 - 키보드 화면은 `Keyboard/KeyCanvas.swift`의 단일 뷰(키 레이어 + 한 곳의 터치 처리, 가까운 키 30pt)로 그린다. 한글 조합은 지우고 쓰는 방식을 유지한다(임시 표시 marked text는 조합이 깨져 되돌림).
 - 세션 중 햅틱이 막히지 않도록 `DictationEngine.activate`에서 `setAllowHapticsAndSystemSoundsDuringRecording(true)`를 켠다.
-- 상태(2026-11-19): 1.0(빌드 2)은 App Store에 배포됨. 1.0.1(빌드 6: 키 캔버스, 햅틱 허용, 블루투스 A2DP 유지, 키 높이 확대, 반복·대기 시간 단축)을 업데이트 심사에 제출함(심사 대기 중). 새 빌드는 항상 버전을 올리고 빌드 번호를 하나 더 올린다.
+- 상태(2026-11-23): 1.0.1(빌드 6) 심사 제출됨. 이후 변경(뗄 때 입력·미끄러져 선택, 키 미리보기, 기본 키보드와 같은 색·글꼴·return 회색)은 빌드 7 후보이며 실기기 확인 대기.

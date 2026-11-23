@@ -92,6 +92,7 @@ final class KeyboardViewController: UIInputViewController {
         ])
         canvas.onDown = { [weak self] id in self?.keyDown(id) }
         canvas.onUp = { [weak self] id, inside in self?.keyUp(id, inside) }
+        canvas.onCommit = { [weak self] id in self?.keyCommit(id) }
         canvas.onGlobe = { [weak self] b in
             guard let self else { return }
             b.addTarget(self, action: #selector(self.handleInputModeList(from:with:)), for: .allTouchEvents)
@@ -176,40 +177,40 @@ final class KeyboardViewController: UIInputViewController {
         // 3행: [모드키] 글자들 [삭제]
         var left: KeySpec
         if layer == .number || layer == .symbol {
-            left = KeySpec(id: .symbols, title: layer == .number ? "#+=" : "123", style: .fn, fontSize: 15, width: 45, gapAfter: 14)
+            left = KeySpec(id: .symbols, title: layer == .number ? "#+=" : "123", style: .fn, fontSize: 16, width: 45, gapAfter: 14)
         } else {
             let name = shift == 2 ? "capslock.fill" : (shift == 1 ? "shift.fill" : "shift")
             let label = shift == 2 ? L("쉬프트 고정", "Caps Lock") : (shift == 1 ? L("쉬프트 켜짐", "Shift on") : L("쉬프트", "Shift"))
-            left = KeySpec(id: .shift, symbol: name, style: .fn, width: 45, gapAfter: 14, label: label)
+            let on = shift > 0
+            left = KeySpec(id: .shift, symbol: name, style: .fn, width: 45, gapAfter: 14,
+                           titleColor: on ? .black : nil, fill: on ? .white : nil, label: label)
         }
         let del = KeySpec(id: .delete, symbol: "delete.left", style: .fn, width: 45, label: L("삭제", "Delete"))
         specs.append([left] + letters(rows[2], lastGap: 14) + [del])
 
         // 4행: [123] [지구본] [한/A] [누르고 말하기] [space] [return]
-        var r4: [KeySpec] = [KeySpec(id: .mode, title: isLetters ? "123" : (lastLetter == .korean ? "가" : "ABC"), style: .fn, fontSize: 18, width: 56,
+        var r4: [KeySpec] = [KeySpec(id: .mode, title: isLetters ? "123" : (lastLetter == .korean ? "가" : "ABC"), style: .fn, fontSize: 16, width: 56,
                                      label: isLetters ? L("숫자", "Numbers") : L("글자", "Letters"))]
         if needsInputModeSwitchKey {   // 홈 버튼 기기에서만 자체 지구본 표시
             r4.append(KeySpec(id: .globe, symbol: "globe", style: .fn, width: 44, label: L("다음 키보드", "Next keyboard")))
         }
-        r4.append(KeySpec(id: .lang, title: lastLetter == .korean ? "한" : "A", style: .fn, fontSize: 18, width: 44,
+        r4.append(KeySpec(id: .lang, title: lastLetter == .korean ? "한" : "A", style: .fn, fontSize: 16, width: 44,
                           label: L("한영 전환", "Switch language"), value: lastLetter == .korean ? L("한글", "Korean") : L("영어", "English")))
         r4.append(KeySpec(id: .talk, title: talkTitle, symbol: "mic.fill", style: .accent, fontSize: 13,
                           label: L("누르고 말하기", "Hold to talk"), hint: L("누르고 있는 동안 말하면 글자로 입력됩니다", "Speak while holding to insert text")))
-        r4.append(KeySpec(id: .space, title: "space", fontSize: 15, titleColor: .secondaryLabel, label: L("스페이스", "Space")))
-        r4.append(KeySpec(id: .ret, symbol: "return", style: .accent, width: 56, label: L("줄바꿈", "Return")))
+        r4.append(KeySpec(id: .space, title: lastLetter == .korean ? "" : "space", fontSize: 16, label: L("스페이스", "Space")))
+        r4.append(KeySpec(id: .ret, symbol: "return", style: .fn, width: 56, label: L("줄바꿈", "Return")))
         specs.append(r4)
 
         canvas.insetRows = [false, inset2, false, false]
         canvas.rows = specs
     }
 
-    // MARK: 키 입력 (터치 순간 / 뗄 때)
+    // MARK: 키 입력
+    /// 누르는 동안 동작하는 키: 삭제(반복), 누르고 말하기
     private func keyDown(_ id: KeyID) {
         switch id {
-        case .letter(let s): typeLetter(s)
         case .delete: startDelete()
-        case .space: composer.reset(); textDocumentProxy.insertText(" ")
-        case .ret: composer.reset(); textDocumentProxy.insertText("\n")
         case .talk: talkDown()
         default: break
         }
@@ -219,13 +220,23 @@ final class KeyboardViewController: UIInputViewController {
         switch id {
         case .delete: stopDelete()
         case .talk: talkUp()
-        case .shift where inside: tapShift()
-        case .symbols where inside: layer = layer == .number ? .symbol : .number; rebuild()
-        case .mode where inside:
+        default: break
+        }
+    }
+
+    /// 손가락을 뗄 때 입력되는 키 (아이폰 기본 키보드와 같게)
+    private func keyCommit(_ id: KeyID) {
+        switch id {
+        case .letter(let s): typeLetter(s)
+        case .space: composer.reset(); textDocumentProxy.insertText(" ")
+        case .ret: composer.reset(); textDocumentProxy.insertText("\n")
+        case .shift: tapShift()
+        case .symbols: layer = layer == .number ? .symbol : .number; rebuild()
+        case .mode:
             composer.reset()
             layer = (layer == .korean || layer == .english) ? .number : lastLetter
             rebuild()
-        case .lang where inside: toggleLanguage()
+        case .lang: toggleLanguage()
         default: break
         }
     }
