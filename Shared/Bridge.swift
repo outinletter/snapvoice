@@ -22,6 +22,7 @@ enum Bridge {
         static let metricsReset = "metricsReset"
         static let lang = "lang"             // 키보드 마지막 언어 (ko / en)
         static let locale = "locale"         // 받아쓰기 언어 (ko-KR / en-US)
+        static let numberRow = "numberRow"   // 숫자 키 줄 보이기 (1 / 0, 기본 끔)
     }
 
     enum Event: String {
@@ -63,6 +64,7 @@ enum Bridge {
         return .medium
     }
     static var keyboardHeight: Double { heightPreset.points }
+    static var showNumberRow: Bool { Bridge.get(Key.numberRow) == "1" }
 
     static var isSessionAlive: Bool {
         Date().timeIntervalSince1970 - (Double(get(Key.heartbeat)) ?? 0) < 3

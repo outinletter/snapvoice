@@ -31,4 +31,3 @@
 - 키보드는 NativeTone(`/Volumes/Data/Project/NativeTone`) 키보드 구조를 바탕으로 한다: `Keyboard/KeyButton.swift`(키 버튼, 뗄 때 입력, 키 미리보기)와 UIStackView 배치, 상단 바 없음, 누르고 말하기 키만 추가. 한글 조합은 지우고 쓰는 방식(HangulComposer)을 유지한다(임시 표시 marked text는 조합이 깨져 되돌림). 기본 키보드 높이 232pt.
 - 세션 중 햅틱이 막히지 않도록 `DictationEngine.activate`에서 `setAllowHapticsAndSystemSoundsDuringRecording(true)`를 켠다.
 - 키보드 높이는 앱에서 작게(202)·보통(232)·크게(266) 프리셋으로 고른다(`Bridge.HeightPreset`, NativeTone 값에서 상단 바 44pt를 뺀 값). 성능 수정 정리는 `docs/KeyboardPerformance.md`.
-- 상태(2026-11-24): 1.0.1은 App Store에 배포됨. 1.0.2(빌드 7: NativeTone 기반 키보드, 영어 요청 합치기, 풍선 재사용, 높이 프리셋)를 업데이트 심사에 제출함(심사 대기 중). 스토어 스크린샷은 이전 디자인이라 새 키보드 화면으로 교체 필요.

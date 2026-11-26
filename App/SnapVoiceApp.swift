@@ -21,6 +21,7 @@ struct SnapVoiceApp: App {
 struct ContentView: View {
     @EnvironmentObject var engine: DictationEngine
     @State private var heightPreset = Bridge.heightPreset
+    @State private var showNumberRow = Bridge.showNumberRow
     @State private var sample = ""
     @State private var defaultLang = Bridge.get(Bridge.Key.defaultLang).isEmpty ? "ko" : Bridge.get(Bridge.Key.defaultLang)
     @AppStorage("autoStart") private var autoStart = true
@@ -60,12 +61,16 @@ struct ContentView: View {
                             ForEach(Bridge.HeightPreset.allCases, id: \.self) { Text($0.label).tag($0) }
                         }
                         .pickerStyle(.segmented)
+                        Toggle(L("숫자 키 줄 보이기", "Show number row"), isOn: $showNumberRow).font(.footnote)
                         TextField(L("여기를 눌러 키보드를 띄워 보세요", "Tap here to try the keyboard"), text: $sample, axis: .vertical)
                             .textFieldStyle(.roundedBorder).font(.footnote)
                     }
                 }
                 .onChange(of: heightPreset) { _, p in
                     Bridge.set(p.rawValue, Bridge.Key.height); Bridge.post(.config)
+                }
+                .onChange(of: showNumberRow) { _, v in
+                    Bridge.set(v ? "1" : "0", Bridge.Key.numberRow); Bridge.post(.config)
                 }
 
                 #if DEBUG

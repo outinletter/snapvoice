@@ -33,7 +33,6 @@ final class KeyButton: UIButton {
         l.textAlignment = .center
         l.backgroundColor = KeyboardTheme.letterKey
         l.layer.cornerRadius = 8
-        l.layer.masksToBounds = true
         l.isHidden = true
         return l
     }()
@@ -76,6 +75,11 @@ final class KeyButton: UIButton {
     }
 
     required init?(coder: NSCoder) { fatalError("init(coder:) not used") }
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        layer.shadowPath = UIBezierPath(roundedRect: bounds, cornerRadius: layer.cornerRadius).cgPath   // 그림자 모양 고정(화면 밖 렌더링 방지)
+    }
 
     private static func fill(_ s: Style) -> UIColor {
         switch s { case .letter: return KeyboardTheme.letterKey; case .special: return KeyboardTheme.specialKey; case .voice: return KeyboardTheme.voice }

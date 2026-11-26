@@ -1,7 +1,7 @@
 import UIKit
 import CoreHaptics
 
-/// 키 햅틱. Core Haptics를 백그라운드 큐에서 돌려 글자 입력을 막지 않고, 연속 타자에서도 겹쳐 울리지 않게 한다.
+/// 키 햅틱. Core Haptics를 백그라운드 큐에서 돌려 글자 입력을 막지 않고, 키마다 짧고 약하게 울린다(연타도 생략하지 않음).
 /// Core Haptics를 쓸 수 없으면 UIKit 햅틱으로 대신한다. (전체 접근 허용이 켜져 있어야 울린다)
 final class Haptics {
     static let shared = Haptics()
@@ -11,7 +11,6 @@ final class Haptics {
     private var ready = false
     private var failed = false          // Core Haptics를 못 쓰면 true: 매번 다시 시도하지 않는다
     var enabled = true               // 전체 접근 허용이 꺼져 있으면 false
-    private var last = Date.distantPast
     private let fallback = UIImpactFeedbackGenerator(style: .rigid)
 
     func prepare() {
@@ -30,8 +29,8 @@ final class Haptics {
             e.stoppedHandler = { [weak self] _ in self?.q.async { self?.ready = false } }
             try e.start()
             let ev = CHHapticEvent(eventType: .hapticTransient, parameters: [
-                CHHapticEventParameter(parameterID: .hapticIntensity, value: 0.55),
-                CHHapticEventParameter(parameterID: .hapticSharpness, value: 0.9)], relativeTime: 0)
+                CHHapticEventParameter(parameterID: .hapticIntensity, value: 0.35),
+                CHHapticEventParameter(parameterID: .hapticSharpness, value: 1.0)], relativeTime: 0)
             pattern = try CHHapticPattern(events: [ev], parameters: [])
             engine = e; ready = true
         } catch { ready = false; failed = true }
@@ -39,15 +38,12 @@ final class Haptics {
 
     func tap() {
         guard enabled else { return }
-        let now = Date()
-        guard now.timeIntervalSince(last) > 0.035 else { return }   // 아주 빠른 연타는 건너뛰어 진동이 뭉치지 않게 한다
-        last = now
         q.async {
             if !self.ready && !self.failed { self.setup() }
             if self.ready, let e = self.engine, let p = self.pattern {
                 do { try e.makePlayer(with: p).start(atTime: CHHapticTimeImmediate); return } catch { self.ready = false; self.failed = true }
             }
-            DispatchQueue.main.async { self.fallback.impactOccurred(intensity: 0.55) }
+            DispatchQueue.main.async { self.fallback.impactOccurred(intensity: 0.35) }
         }
     }
 }
@@ -85,7 +81,7 @@ final class KeyboardViewController: UIInputViewController {
         KeyButton.popupHost = view
 
         keysStack.axis = .vertical
-        keysStack.spacing = 10
+        keysStack.spacing = Self.rowGap
         keysStack.distribution = .fillEqually
         keysStack.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(keysStack)
@@ -104,7 +100,7 @@ final class KeyboardViewController: UIInputViewController {
             self.setTalk(t.isEmpty ? L("듣는 중…", "Listening…") : t)
         }
         Bridge.observe(.result) { [weak self] in self?.finishDictation() }
-        Bridge.observe(.config) { [weak self] in self?.applyHeight() }
+        Bridge.observe(.config) { [weak self] in self?.rebuildKeys(); self?.applyHeight() }
     }
 
     private var heightC: NSLayoutConstraint?
@@ -137,8 +133,17 @@ final class KeyboardViewController: UIInputViewController {
     /// 앱에서 정한 높이를 반영한다. 가로 모드에서는 화면을 덜 가리도록 낮춘다.
     private func applyHeight() {
         let b = UIScreen.main.bounds
-        heightC?.constant = b.width > b.height ? min(Bridge.keyboardHeight, 162) : Bridge.keyboardHeight
+        let base = b.width > b.height ? min(Bridge.keyboardHeight, 162) : Bridge.keyboardHeight
+        guard showsNumberRow else { heightC?.constant = base; return }
+        // 글자 줄 크기는 그대로 두고 숫자 줄(글자 줄의 80%)과 줄 간격만큼 더한다. 4줄 + 간격 3개 + 위아래 여백 12pt
+        let rowHeight = (base - 12 - 3 * Self.rowGap) / 4
+        heightC?.constant = base + rowHeight * Self.numberRowScale + Self.rowGap
     }
+
+    private static let rowGap: CGFloat = 10
+    private static let numberRowScale: CGFloat = 0.8
+    /// 숫자 키 줄은 한글·영어 자판 위에만 둔다(숫자·기호 자판에는 없음)
+    private var showsNumberRow: Bool { Bridge.showNumberRow && (layer == .korean || layer == .english) }
 
     override func viewWillTransition(to size: CGSize, with coordinator: UIViewControllerTransitionCoordinator) {
         super.viewWillTransition(to: size, with: coordinator)
@@ -194,12 +199,24 @@ final class KeyboardViewController: UIInputViewController {
         case .symbol: rows = [["[", "]", "{", "}", "#", "%", "^", "*", "+", "="], ["_", "\\", "|", "~", "<", ">", "$", "£", "¥", "•"], [".", ",", "?", "!", "'"]]
         }
         let isLetters = layer == .korean || layer == .english
+        keysStack.distribution = .fillEqually
+
+        // 숫자 키 줄(설정에서 켰을 때)
+        var digits: UIStackView?
+        if showsNumberRow {
+            let d = UIStackView()
+            d.axis = .horizontal; d.spacing = 5; d.distribution = .fillEqually
+            let k = Array("1234567890").map { makeCharKey(String($0)) }
+            k.forEach { $0.popupAbove = false; d.addArrangedSubview($0) }
+            keysStack.addArrangedSubview(d)
+            digits = d
+        }
 
         // 1행: 기준 키 폭
         let row1 = UIStackView()
         row1.axis = .horizontal; row1.spacing = 5; row1.distribution = .fillEqually
         let row1Keys = rows[0].map(makeCharKey)
-        row1Keys.forEach { $0.popupAbove = false }   // 맨 윗줄은 위 공간이 없다
+        if digits == nil { row1Keys.forEach { $0.popupAbove = false } }   // 맨 윗줄은 위 공간이 없다
         row1Keys.forEach(row1.addArrangedSubview)
         keysStack.addArrangedSubview(row1)
         let ref = row1Keys[0]
@@ -278,6 +295,14 @@ final class KeyboardViewController: UIInputViewController {
         let bottom = UIStackView(arrangedSubviews: bottomKeys + [langKey, voice, space, ret])
         bottom.axis = .horizontal; bottom.spacing = 5; bottom.distribution = .fill
         keysStack.addArrangedSubview(bottom)
+        if let digits {
+            // 글자 줄은 같은 높이, 숫자 줄은 그 80%
+            keysStack.distribution = .fill
+            let rows = keysStack.arrangedSubviews.filter { $0 !== digits }
+            rows.dropFirst().forEach { $0.heightAnchor.constraint(equalTo: rows[0].heightAnchor).isActive = true }
+            digits.heightAnchor.constraint(equalTo: rows[0].heightAnchor, multiplier: Self.numberRowScale).isActive = true
+        }
+        applyHeight()
         modeKey.widthAnchor.constraint(equalTo: ref.widthAnchor, multiplier: 1.4).isActive = true
         bottomKeys.dropFirst().forEach { $0.widthAnchor.constraint(equalTo: ref.widthAnchor, multiplier: 1.2).isActive = true }
         langKey.widthAnchor.constraint(equalTo: ref.widthAnchor, multiplier: 1.2).isActive = true
@@ -293,7 +318,7 @@ final class KeyboardViewController: UIInputViewController {
             guard let self else { return }
             self.type(b?.title(for: .normal) ?? ch)
         }
-        if layer == .korean || layer == .english { letterBases.append((b, ch)) }
+        if (layer == .korean || layer == .english) && !ch.allSatisfy(\.isNumber) { letterBases.append((b, ch)) }
         return b
     }
 
@@ -316,39 +341,43 @@ final class KeyboardViewController: UIInputViewController {
     // 입력창 앱으로 보내는 요청을 줄인다. 영어는 아주 빠른 연타(12ms 이내)를 한 번에 합쳐서 보낸다.
     // 합치는 동안에도 다른 요청(삭제, 읽기, 한글 조합)은 먼저 밀린 글자를 내보내 순서를 지킨다.
     private var pendingText = ""
+    private var pendingDelete = 0            // 입력창에서 지워야 할 글자 수 (밀린 글자보다 앞에서 지운다)
     private var lastSend = Date.distantPast
     private var flushScheduled = false
 
     private func flushPending() {
-        guard !pendingText.isEmpty else { return }
-        let t = pendingText; pendingText = ""
+        guard pendingDelete > 0 || !pendingText.isEmpty else { return }
+        let n = pendingDelete, t = pendingText
+        pendingDelete = 0; pendingText = ""
         lastSend = Date()
-        Metrics.shared.time("proxy.insert") { textDocumentProxy.insertText(t) }
+        for _ in 0..<n { Metrics.shared.time("proxy.delete") { textDocumentProxy.deleteBackward() } }
+        if !t.isEmpty { Metrics.shared.time("proxy.insert") { textDocumentProxy.insertText(t) } }
+    }
+
+    /// 터치 처리가 끝난 뒤(다음 런루프), 직전 전송 후 12ms가 지나면 바로, 아니면 그때까지 기다렸다가 한 번에 보낸다.
+    private func scheduleFlush() {
+        guard !flushScheduled else { return }
+        flushScheduled = true
+        let wait = max(0, 0.012 - Date().timeIntervalSince(lastSend))
+        DispatchQueue.main.asyncAfter(deadline: .now() + wait) { [weak self] in
+            self?.flushScheduled = false
+            self?.flushPending()
+        }
     }
 
     private func hostInsert(_ s: String) {          // 합칠 수 있는 입력 (영어 글자, 스페이스)
         pendingText += s
-        let since = Date().timeIntervalSince(lastSend)
-        if since >= 0.012 {
-            flushPending()
-        } else if !flushScheduled {
-            flushScheduled = true
-            DispatchQueue.main.asyncAfter(deadline: .now() + (0.012 - since)) { [weak self] in
-                self?.flushScheduled = false
-                self?.flushPending()
-            }
-        }
+        scheduleFlush()
     }
 
-    private func hostInsertNow(_ s: String) {       // 바로 보내야 하는 입력 (한글, 줄바꿈, 받아쓰기 결과)
+    private func hostInsertNow(_ s: String) {       // 바로 보내야 하는 입력 (줄바꿈, 받아쓰기 결과)
+        pendingText += s
         flushPending()
-        lastSend = Date()
-        Metrics.shared.time("proxy.insert") { textDocumentProxy.insertText(s) }
     }
 
-    private func hostDelete() {
-        flushPending()
-        Metrics.shared.time("proxy.delete") { textDocumentProxy.deleteBackward() }
+    private func hostDelete() {                     // 밀린 글자가 있으면 그 글자를 지운 것으로 합친다
+        if pendingText.isEmpty { pendingDelete += 1 } else { pendingText.removeLast() }
+        scheduleFlush()
     }
 
     private func hostRead() -> String? {
@@ -367,14 +396,14 @@ final class KeyboardViewController: UIInputViewController {
 
     private func apply(_ e: HangulComposer.Edit) {
         if e.delete { hostDelete() }
-        if !e.insert.isEmpty { hostInsertNow(e.insert) }
+        if !e.insert.isEmpty { hostInsert(e.insert) }
     }
 
     private var lastTypeAt = CACurrentMediaTime()
     private func type(_ s: String) {
         let kor = layer == .korean
         Metrics.shared.time((kor ? "ko" : "en") + ".type") {
-            if kor, let ch = s.first {
+            if kor, let ch = s.first, ch.isLetter {   // 숫자 키 줄의 숫자는 조합하지 않는다
                 if composer.isComposing { syncComposer() } else { lastKeyAt = Date() }
                 apply(composer.input(ch))
             } else {
